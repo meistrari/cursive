@@ -1,0 +1,6 @@
+{
+  "extends": "@antfu",
+  "rules": {
+    "@typescript-eslint/indent": ["error", 4]
+  }
+}
