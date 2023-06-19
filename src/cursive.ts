@@ -27,12 +27,14 @@ export function useCursive(initOptions: { apiKey: string }) {
             prompt && { role: 'user', content: prompt },
         ].filter(Boolean) as ChatCompletionRequestMessage[]
 
-        const payload = {
+        const payload: Record<string, any> = {
             ...toSnake(rest),
             model,
             messages: queryMessages,
-            functions: functionSchemas,
         }
+
+        if (functionSchemas.length > 0)
+            payload.functions = functionSchemas
 
         const completionPromise: CreateChatCompletionResponse = await openai.createChatCompletion(payload)
             .then(response => response.json())
@@ -46,8 +48,15 @@ export function useCursive(initOptions: { apiKey: string }) {
             const functionCall = completionPromise.choices[0].message?.function_call
             const functionDefinition = functions.find(({ schema }) => schema.name === functionCall.name)
 
-            if (!functionDefinition)
-                throw new CursiveError(`Function ${functionCall.name} not found`)
+            if (!functionDefinition) {
+                return query({
+                    ...rest,
+                    model,
+                    functions,
+                    messages: queryMessages,
+                    functionCall: 'none',
+                })
+            }
 
             const args = resguard(() => JSON.parse(functionCall.arguments || '{}'), SyntaxError)
             const result = await resguard(functionDefinition.definition(args.data))
@@ -55,7 +64,7 @@ export function useCursive(initOptions: { apiKey: string }) {
             if (result.error)
                 throw new CursiveError(`Error while running function ${functionCall.name}`, result.error)
 
-            const messages = options.messages || []
+            const messages = queryMessages || []
             messages.push({
                 role: 'function',
                 name: functionCall.name,
