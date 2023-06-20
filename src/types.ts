@@ -6,11 +6,12 @@ export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
 }
 
-export interface CursiveCreateFunctionOptions<P extends ZodRawShape> {
+export interface CursiveCreateFunctionOptions<P extends ZodRawShape, C> {
     name: string
     description: string
     parameters: P
-    execute(parameters: InferredFunctionParameters<P>): Promise<any>
+    context?: C
+    execute(parameters: InferredFunctionParameters<P>, context: C): Promise<any>
 }
 
 export type CursiveFunction = ReturnType<typeof createFunction>
@@ -50,7 +51,7 @@ export function toSnake<T>(source: T): CamelToSnakeCase<T> {
     return source as CamelToSnakeCase<T>
 }
 
-interface CursiveQueryOptions {
+interface CursiveQueryOptionsBase {
     model?: string
     systemMessage?: string
     functions?: CursiveFunction[]
@@ -67,12 +68,14 @@ interface CursiveQueryOptions {
     user?: string
 }
 
-export interface CursiveQueryOptionsWithMessages extends CursiveQueryOptions {
+export interface CursiveQueryOptionsWithMessages extends CursiveQueryOptionsBase {
     messages: ChatCompletionRequestMessage[]
     prompt?: never
 }
 
-export interface CursiveQueryOptionsWithPrompt extends CursiveQueryOptions {
+export interface CursiveQueryOptionsWithPrompt extends CursiveQueryOptionsBase {
     prompt: string
     messages?: never
 }
+
+export type CursiveQueryOptions = CursiveQueryOptionsWithMessages | CursiveQueryOptionsWithPrompt

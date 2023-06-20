@@ -1,5 +1,5 @@
-import { Configuration, OpenAIApi } from 'openai-edge-fns'
-import type { ChatCompletionRequestMessage, CreateChatCompletionResponse } from 'openai-edge'
+import { Configuration, OpenAIApi } from 'openai-edge'
+import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
 import type { ResguardResult } from 'resguard'
 import { resguard } from 'resguard'
 import type { CursiveQueryOptionsWithMessages, CursiveQueryOptionsWithPrompt } from './types'
@@ -27,7 +27,7 @@ export function useCursive(initOptions: { apiKey: string }) {
             prompt && { role: 'user', content: prompt },
         ].filter(Boolean) as ChatCompletionRequestMessage[]
 
-        const payload: Record<string, any> = {
+        const payload: CreateChatCompletionRequest = {
             ...toSnake(rest),
             model,
             messages: queryMessages,
@@ -59,7 +59,7 @@ export function useCursive(initOptions: { apiKey: string }) {
             }
 
             const args = resguard(() => JSON.parse(functionCall.arguments || '{}'), SyntaxError)
-            const result = await resguard(functionDefinition.definition(args.data))
+            const result = await resguard(functionDefinition.definition(args.data, functionDefinition.context || {}))
 
             if (result.error)
                 throw new CursiveError(`Error while running function ${functionCall.name}`, result.error)

@@ -4,9 +4,10 @@ import type { JsonSchema7ObjectType } from 'zod-to-json-schema/src/parsers/objec
 import z from 'zod'
 import type { CursiveCreateFunctionOptions } from './types'
 
-export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunctionOptions<P>) {
+export function createFunction<P extends ZodRawShape, C = {}>(options: CursiveCreateFunctionOptions<P, C>) {
     const zodSchema = z.object({ ...options.parameters }).describe(options.description)
     const { type, properties, required, description } = zodToJsonSchema(zodSchema) as JsonSchema7ObjectType & { description: string }
+
     const resolvedSchema = {
         parameters: {
             type,
@@ -16,8 +17,10 @@ export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunc
         description,
         name: options.name,
     }
+
     return {
         schema: resolvedSchema,
         definition: options.execute,
+        context: options.context,
     }
 }
