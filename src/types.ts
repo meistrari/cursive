@@ -6,22 +6,27 @@ export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
 }
 
-export interface CursiveCreateFunctionOptions<P extends ZodRawShape, C> {
+export interface CursiveCreateFunctionOptions<P extends ZodRawShape> {
     name: string
     description: string
-    parameters: P
-    context?: C
-    execute(parameters: InferredFunctionParameters<P>, context: C): Promise<any>
+    parameters?: P
+    execute(parameters: InferredFunctionParameters<P>): Promise<any>
 }
 
 export type CursiveFunction = ReturnType<typeof createFunction>
 
+export enum CursiveErrorCode {
+    FunctionCallError = 'function_call_error',
+    CompletionError = 'completion_error',
+    InvalidRequestError = 'invalid_request_error',
+}
 export class CursiveError extends Error {
-    constructor(message: string, public details?: any) {
+    constructor(message: string, public details?: any, public code?: CursiveErrorCode) {
         super(message)
         this.name = 'CursiveError'
         this.message = message
         this.details = details
+        this.code = code
     }
 }
 

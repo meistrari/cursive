@@ -1,4 +1,4 @@
-import { createFunction, useCursive, z } from '../src'
+import { createFunction, useCursive } from '../src'
 
 const { query } = useCursive({
     apiKey: process.env.OPENAI_API_KEY!,
@@ -7,23 +7,22 @@ const { query } = useCursive({
 const add = createFunction({
     name: 'add',
     description: 'Adds two numbers a and b.',
-    parameters: {
-        a: z.number().describe('First number'),
-        b: z.number().describe('Second number'),
-    },
-    context: { c: 1 },
-    async execute({ a, b }, { c }) {
-        console.log({ a, b, c })
-        return (a + b) * c
+    async execute({ a, b }) {
+        return 1345
     },
 })
 
-const { data, error } = await query({
+const result = await query({
     functions: [add],
-    prompt: 'How much is 125 + 1233?',
+    // prompt: 'How much is 125 + 1233?',
     temperature: 0,
+    messages: new Array(1000).fill(0).map(_ => ({
+        role: 'user',
+        content: 'How much is 125 + 1233?',
+    }) as const),
 })
 
-console.log(data)
-if (error)
-    console.error(error)
+if (result.error)
+    console.log(result.error.details)
+
+console.log(result.data)
