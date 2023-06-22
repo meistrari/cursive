@@ -16,7 +16,7 @@ const result = await query({
     functions: [add],
     // prompt: 'How much is 125 + 1233?',
     temperature: 0,
-    messages: new Array(1000).fill(0).map(_ => ({
+    messages: new Array(1).fill(0).map(_ => ({
         role: 'user',
         content: 'How much is 125 + 1233?',
     }) as const),
@@ -25,4 +25,4 @@ const result = await query({
 if (result.error)
     console.log(result.error.details)
 
-console.log(result.data)
+console.log(result)

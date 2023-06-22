@@ -81,27 +81,25 @@ export function useCursive(initOptions: { apiKey: string }) {
                 const functionDefinition = functions.find(({ schema }) => schema.name === functionCall.name)
 
                 if (!functionDefinition) {
-                    return query({
+                    const { data } = await query({
                         ...rest,
                         model,
                         functions,
                         messages: queryMessages,
                         functionCall: 'none',
                     })
+                    return data
                 }
 
                 const args = resguard(() => JSON.parse(functionCall.arguments || '{}'), SyntaxError)
                 const result = await resguard(functionDefinition.definition(args.data))
 
                 if (result.error) {
-                    return {
-                        data: null,
-                        error: new CursiveError(
-                            `Error while running function ${functionCall.name}`,
-                            result.error,
-                            CursiveErrorCode.FunctionCallError,
-                        ),
-                    }
+                    throw new CursiveError(
+                        `Error while running function ${functionCall.name}`,
+                        result.error,
+                        CursiveErrorCode.FunctionCallError,
+                    )
                 }
 
                 const messages = queryMessages || []
@@ -111,14 +109,14 @@ export function useCursive(initOptions: { apiKey: string }) {
                     content: JSON.stringify(result.data || ''),
                 })
 
-                return query({
+                const { data } = await query({
                     ...rest,
                     model,
                     functions,
                     messages,
                 })
+                return data
             }
-
             return completion.data as any
         }, CursiveError)
     }
