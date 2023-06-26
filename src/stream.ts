@@ -1,4 +1,3 @@
-import { ReadableStream, TransformStream } from 'node:stream/web'
 import type { EventSourceParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { createParser } from 'eventsource-parser'
 import { CursiveError, CursiveErrorCode } from './types'

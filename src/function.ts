@@ -1,7 +1,7 @@
 import type { ZodRawShape } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import type { JsonSchema7ObjectType } from 'zod-to-json-schema/src/parsers/object'
-import z from 'zod'
+import { z } from 'zod'
 import type { CursiveCreateFunctionOptions } from './types'
 
 export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunctionOptions<P>) {
