@@ -46,6 +46,7 @@
     "eslint": "^8.41.0",
     "esno": "^0.16.3",
     "lint-staged": "^13.2.2",
+    "node-fetch": "^3.3.1",
     "pnpm": "^8.6.0",
     "rimraf": "^5.0.1",
     "simple-git-hooks": "^2.8.1",
@@ -61,9 +62,14 @@
     "*": "eslint --fix"
   },
   "dependencies": {
+    "eventsource-parser": "^1.0.0",
+    "gpt-token-utils": "^1.2.0",
+    "hookable": "^5.5.3",
+    "ofetch": "^1.1.1",
     "openai-edge": "^1.1.0",
     "openai-edge-fns": "^1.1.0",
-    "resguard": "^1.4.2",
+    "resguard": "^1.4.3",
+    "unenv": "^1.5.1",
     "zod": "^3.21.4",
     "zod-to-json-schema": "^3.21.2"
   }

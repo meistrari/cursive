@@ -1,7 +1,12 @@
 import { createFunction, useCursive } from '../src'
 
-const { query } = useCursive({
+const cursive = useCursive({
     apiKey: process.env.OPENAI_API_KEY!,
+    // debug: true,
+})
+
+cursive.on('completion:after', (result, duration) => {
+    console.log(result.usage?.completion_tokens, duration)
 })
 
 const add = createFunction({
@@ -12,17 +17,18 @@ const add = createFunction({
     },
 })
 
-const result = await query({
+const result = await cursive.query({
     functions: [add],
-    // prompt: 'How much is 125 + 1233?',
     temperature: 0,
     messages: new Array(1).fill(0).map(_ => ({
         role: 'user',
-        content: 'How much is 125 + 1233?',
+        content: 'What can you do?',
     }) as const),
 })
 
-if (result.error)
-    console.log(result.error.details)
+console.log(result.choices)
+// if (result.error)
+//     console.log(result.error)
 
-console.log(result)
+// else
+//     console.log(result)
