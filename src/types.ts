@@ -1,7 +1,7 @@
 import type { ZodRawShape } from 'zod'
 import type { ChatCompletionRequestMessage } from 'openai-edge-fns'
 import type { CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
-import type { createFunction } from './function'
+import type { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef'
 
 export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
@@ -15,7 +15,19 @@ export interface CursiveCreateFunctionOptions<P extends ZodRawShape> {
     pause?: boolean
 }
 
-export type CursiveFunction = ReturnType<typeof createFunction>
+export interface CursiveFunction {
+    schema: {
+        parameters: {
+            type: 'object'
+            properties: Record<string, JsonSchema7Type>
+            required: string[]
+        }
+        description: string
+        name: string
+    }
+    definition: (parameters: Record<string, any>) => Promise<any>
+    pause?: boolean
+}
 
 export enum CursiveErrorCode {
     FunctionCallError = 'function_call_error',
