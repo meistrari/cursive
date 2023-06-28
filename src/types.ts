@@ -12,6 +12,7 @@ export interface CursiveCreateFunctionOptions<P extends ZodRawShape> {
     description: string
     parameters?: P
     execute(parameters: InferredFunctionParameters<P>): Promise<any>
+    pause?: boolean
 }
 
 export type CursiveFunction = ReturnType<typeof createFunction>
@@ -39,7 +40,7 @@ interface CursiveQueryOptionsBase {
     model?: string
     systemMessage?: string
     functions?: CursiveFunction[]
-    functionCall?: 'auto' | 'none'
+    functionCall?: string | CursiveFunction
     onProgress?: CursiveQueryOnProgress
     maxTokens?: number
     stop?: string[]
@@ -77,6 +78,7 @@ export interface CursiveQuerySuccessResult {
         totalTokens: number
     }
     error: null
+    functionResult?: any
 }
 
 export interface CursiveQueryErrorResult {

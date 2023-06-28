@@ -1,8 +1,8 @@
-import { createFunction, useCursive } from '../src'
+import { createFunction, useCursive, z } from '../src'
 
 const cursive = useCursive({
     apiKey: process.env.OPENAI_API_KEY!,
-    // debug: true,
+    debug: true,
 })
 
 cursive.on('completion:after', (result, duration) => {
@@ -12,23 +12,27 @@ cursive.on('completion:after', (result, duration) => {
 const add = createFunction({
     name: 'add',
     description: 'Adds two numbers a and b.',
+    parameters: {
+        a: z.number().describe('The first number.'),
+        b: z.number().describe('The second number.'),
+    },
     async execute({ a, b }) {
-        return 1345
+        return a + b
     },
 })
 
 const result = await cursive.query({
-    functions: [add],
+    functionCall: add,
     temperature: 0,
     messages: new Array(1).fill(0).map(_ => ({
         role: 'user',
-        content: 'What can you do?',
+        content: 'how much is 293 + 123?',
     }) as const),
 })
 
-console.log(result.choices)
+// console.log(result.error.details)
 // if (result.error)
 //     console.log(result.error)
 
 // else
-//     console.log(result)
+console.log(result)

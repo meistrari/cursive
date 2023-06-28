@@ -21,5 +21,6 @@ export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunc
     return {
         schema: resolvedSchema,
         definition: options.execute,
+        pause: options.pause,
     }
 }

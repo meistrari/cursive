@@ -42,11 +42,15 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
     async function query(
         options: CursiveQueryOptions,
     ): CursiveQueryResult {
-        async function executeQuery(options: CursiveQueryOptions): Promise<CreateChatCompletionResponse> {
+        async function executeQuery(options: CursiveQueryOptions): Promise<CreateChatCompletionResponse & { functionResult?: any }> {
             await hooks.callHook('query:before', options)
 
             const { payload, resolvedOptions } = resolveOptions(options)
             const functions = options.functions || []
+
+            if (typeof options.functionCall !== 'string' && options.functionCall?.schema)
+                functions.push(options.functionCall)
+
             const functionSchemas = functions.map(({ schema }) => schema)
 
             if (functionSchemas.length > 0)
@@ -133,11 +137,19 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
                     content: JSON.stringify(functionResult.data || ''),
                 })
 
-                return await executeQuery({
-                    ...resolvedOptions,
-                    functions,
-                    messages,
-                })
+                if (functionDefinition.pause) {
+                    return {
+                        ...completion.data,
+                        functionResult: functionResult.data,
+                    }
+                }
+                else {
+                    return await executeQuery({
+                        ...resolvedOptions,
+                        functions,
+                        messages,
+                    })
+                }
             }
 
             await hooks.callHook('query:after', completion.data, null)
@@ -171,6 +183,7 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
                 model: result.data.model,
                 id: result.data.id,
                 choices: result.data.choices,
+                functionResult: result.data.functionResult || null,
             }
         }
     }
@@ -188,6 +201,7 @@ function resolveOptions(options: CursiveQueryOptions) {
         model = 'gpt-3.5-turbo-0613',
         systemMessage,
         prompt,
+        functionCall,
         ...rest
     } = options
 
@@ -197,10 +211,17 @@ function resolveOptions(options: CursiveQueryOptions) {
         prompt && { role: 'user', content: prompt },
     ].filter(Boolean) as ChatCompletionRequestMessage[]
 
+    const resolvedFunctionCall = functionCall
+        ? typeof functionCall === 'string'
+            ? functionCall
+            : { name: functionCall.schema.name }
+        : undefined
+
     const payload: CreateChatCompletionRequest = {
         ...toSnake(rest),
         model,
         messages: queryMessages,
+        function_call: resolvedFunctionCall,
     }
 
     const resolvedOptions = {
