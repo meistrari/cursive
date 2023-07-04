@@ -5,9 +5,10 @@ import { createDebugger, createHooks } from 'hookable'
 import { ofetch } from 'ofetch'
 import type { FetchInstance } from 'openai-edge/types/base'
 import type { CursiveHook, CursiveHooks, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult } from './types'
-import { CursiveError, CursiveErrorCode, toSnake } from './types'
+import { CursiveError, CursiveErrorCode } from './types'
 import { getStream } from './stream'
 import { getUsage } from './usage'
+import { toSnake } from './util'
 
 function createOpenAIClient(options: { apiKey: string }) {
     const resolvedFetch: FetchInstance = ofetch.native
