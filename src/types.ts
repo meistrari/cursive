@@ -81,15 +81,25 @@ export interface CursiveQueryOptionsWithPrompt extends CursiveQueryOptionsBase {
 
 export type CursiveQueryOptions = CursiveQueryOptionsWithMessages | CursiveQueryOptionsWithPrompt
 
+export interface CursiveQueryUsage {
+    completionTokens: number
+    promptTokens: number
+    totalTokens: number
+}
+
+export interface CursiveQueryCost {
+    completion: number
+    prompt: number
+    total: number
+    version: string
+}
+
 export interface CursiveQuerySuccessResult {
     choices: CreateChatCompletionResponse['choices']
     id: string
     model: string
-    usage: {
-        completionTokens: number
-        promptTokens: number
-        totalTokens: number
-    }
+    usage: CursiveQueryUsage
+    cost: CursiveQueryCost
     error: null
     functionResult?: any
 }

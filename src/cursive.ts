@@ -4,11 +4,12 @@ import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
 import { ofetch } from 'ofetch'
 import type { FetchInstance } from 'openai-edge/types/base'
-import type { CursiveHook, CursiveHooks, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult } from './types'
+import type { CursiveHook, CursiveHooks, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult, CursiveQueryUsage } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
 import { getStream } from './stream'
 import { getUsage } from './usage'
 import { toSnake } from './util'
+import { resolveOpenAIPricing } from './pricing'
 
 function createOpenAIClient(options: { apiKey: string }) {
     const resolvedFetch: FetchInstance = ofetch.native
@@ -174,13 +175,17 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
             }
         }
         else {
+            const usage: CursiveQueryUsage = {
+                completionTokens: result.data.usage!.completion_tokens,
+                promptTokens: result.data.usage!.prompt_tokens,
+                totalTokens: result.data.usage!.total_tokens,
+            }
+            const cost = resolveOpenAIPricing(usage, result.data.model)
+
             return {
                 error: null,
-                usage: {
-                    completionTokens: result.data.usage!.completion_tokens,
-                    promptTokens: result.data.usage!.prompt_tokens,
-                    totalTokens: result.data.usage!.total_tokens,
-                },
+                usage,
+                cost,
                 model: result.data.model,
                 id: result.data.id,
                 choices: result.data.choices,
