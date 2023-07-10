@@ -58,7 +58,13 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
             if (functionSchemas.length > 0)
                 payload.functions = functionSchemas
 
-            let completion = await resguard(createCompletion({ payload, openai, hooks, onProgress: options.onProgress }), CursiveError)
+            let completion = await resguard(createCompletion({
+                payload,
+                openai,
+                hooks,
+                onProgress: options.onProgress,
+                abortSignal: options.abortSignal,
+            }), CursiveError)
 
             if (completion.error) {
                 await hooks.callHook('completion:error', completion.error)
@@ -70,6 +76,7 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
                             openai,
                             hooks,
                             onProgress: options.onProgress,
+                            abortSignal: options.abortSignal,
                         }),
                         CursiveError,
                     )
@@ -84,7 +91,13 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
                 if (completion.error) {
                     // Retry 5 times
                     for (let i = 0; i < 5; i++) {
-                        completion = await resguard(createCompletion({ payload, openai, hooks, onProgress: options.onProgress }), CursiveError)
+                        completion = await resguard(createCompletion({
+                            payload,
+                            openai,
+                            hooks,
+                            onProgress: options.onProgress,
+                            abortSignal: options.abortSignal,
+                        }), CursiveError)
 
                         if (completion.error)
                             await hooks.callHook('completion:error', completion.error)
@@ -208,6 +221,7 @@ function resolveOptions(options: CursiveQueryOptions) {
         systemMessage,
         prompt,
         functionCall,
+        abortSignal: __,
         ...rest
     } = options
 
