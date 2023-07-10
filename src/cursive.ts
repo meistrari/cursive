@@ -246,10 +246,10 @@ async function createCompletion(context: {
     abortSignal?: AbortSignal
     onProgress?: CursiveQueryOnProgress
 }) {
-    const { payload, openai, hooks } = context
+    const { payload, openai, hooks, abortSignal } = context
     await hooks.callHook('completion:before', payload)
     const start = Date.now()
-    const response = await openai.createChatCompletion({ ...payload }, context.abortSignal)
+    const response = await openai.createChatCompletion({ ...payload }, abortSignal)
     let data: any
 
     if (payload.stream) {
