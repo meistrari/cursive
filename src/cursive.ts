@@ -4,7 +4,7 @@ import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
 import { ofetch } from 'ofetch'
 import type { FetchInstance } from 'openai-edge/types/base'
-import type { CursiveHook, CursiveHooks, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult, CursiveQueryUsage } from './types'
+import type { CursiveHook, CursiveHooks, CursiveQueryCost, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult, CursiveQueryUsage } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
 import { getStream } from './stream'
 import { getUsage } from './usage'
@@ -67,7 +67,6 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
             }), CursiveError)
 
             if (completion.error) {
-                await hooks.callHook('completion:error', completion.error)
                 const cause = completion.error.details.code || completion.error.details.type
                 if (cause === 'context_length_exceeded') {
                     completion = await resguard(
@@ -99,9 +98,6 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
                             abortSignal: options.abortSignal,
                         }), CursiveError)
 
-                        if (completion.error)
-                            await hooks.callHook('completion:error', completion.error)
-
                         if (!completion.error)
                             break
                     }
@@ -110,7 +106,6 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
 
             if (completion.error) {
                 const error = new CursiveError('Error while completing request', completion.error.details, CursiveErrorCode.CompletionError)
-                await hooks.callHook('completion:error', error)
                 await hooks.callHook('query:error', error)
                 await hooks.callHook('query:after', null, error)
                 throw error
@@ -337,12 +332,23 @@ async function createCompletion(context: {
         data = await response.json()
     }
 
-    if (data.error)
-        throw new CursiveError(data.error.message, data.error, CursiveErrorCode.CompletionError)
-
     const end = Date.now()
 
-    await hooks.callHook('completion:after', data as CreateChatCompletionResponse, end - start)
+    if (data.error) {
+        const error = new CursiveError(data.error.message, data.error, CursiveErrorCode.CompletionError)
+        await hooks.callHook('completion:error', error, end - start)
+        await hooks.callHook('completion:after', null, error, end - start)
+        throw error
+    }
 
-    return data as CreateChatCompletionResponse
+    data.cost = resolveOpenAIPricing({
+        completionTokens: data.usage.completion_tokens,
+        promptTokens: data.usage.prompt_tokens,
+        totalTokens: data.usage.total_tokens,
+    }, data.model)
+
+    await hooks.callHook('completion:success', data, end - start)
+    await hooks.callHook('completion:after', data, null, end - start)
+
+    return data as CreateChatCompletionResponse & { cost: CursiveQueryCost }
 }

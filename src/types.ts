@@ -113,15 +113,16 @@ export interface CursiveQueryErrorResult {
 }
 
 export type CursiveQueryResult = Promise<CursiveQuerySuccessResult | CursiveQueryErrorResult>
+type ChatCompletionWithCost = CreateChatCompletionResponse & { cost: CursiveQueryCost }
 export interface CursiveHooks {
     'query:before': (options: CursiveQueryOptions) => HookResult
-    'query:after': (result: CreateChatCompletionResponse | null, error: CursiveError | null) => HookResult
+    'query:after': (result: ChatCompletionWithCost | null, error: CursiveError | null) => HookResult
     'query:error': (error: CursiveError) => HookResult
-    'query:success': (result: CreateChatCompletionResponse) => HookResult
+    'query:success': (result: ChatCompletionWithCost) => HookResult
     'completion:before': (options: CreateChatCompletionRequest) => HookResult
-    'completion:after': (result: CreateChatCompletionResponse, duration: number) => HookResult
-    'completion:error': (error: CursiveError) => HookResult
-    'completion:success': (result: CreateChatCompletionResponse) => HookResult
+    'completion:after': (result: ChatCompletionWithCost | null, error: CursiveError | null, duration: number) => HookResult
+    'completion:error': (error: CursiveError, duration: number) => HookResult
+    'completion:success': (result: ChatCompletionWithCost, duration: number) => HookResult
 }
 
 export type CursiveHook = keyof CursiveHooks
