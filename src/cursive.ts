@@ -4,6 +4,7 @@ import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
 import { ofetch } from 'ofetch'
 import type { FetchInstance } from 'openai-edge/types/base'
+import type { CreateEmbeddingRequest } from 'openai-edge-fns'
 import type { CursiveHook, CursiveHooks, CursiveQueryCost, CursiveQueryOnProgress, CursiveQueryOptions, CursiveQueryResult, CursiveQueryUsage } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
 import { getStream } from './stream'
@@ -26,7 +27,19 @@ function createOpenAIClient(options: { apiKey: string }) {
         })
     }
 
-    return { createChatCompletion }
+    async function createEmbedding(payload: CreateEmbeddingRequest, abortSignal?: AbortSignal) {
+        return resolvedFetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${options.apiKey}`,
+            },
+            body: JSON.stringify(payload),
+            signal: abortSignal,
+        })
+    }
+
+    return { createChatCompletion, createEmbedding }
 }
 
 export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
@@ -202,8 +215,35 @@ export function useCursive(initOptions: { apiKey: string; debug?: boolean }) {
         }
     }
 
+    async function embed(content: string) {
+        const options = {
+            model: 'text-embedding-ada-002',
+            input: content,
+        }
+        await hooks.callHook('embedding:before', options)
+        const start = Date.now()
+        const response = await openai.createEmbedding(options)
+
+        const data = await response.json()
+
+        if (data.error) {
+            const error = new CursiveError(data.error.message, data.error, CursiveErrorCode.EmbeddingError)
+            await hooks.callHook('embedding:error', error, Date.now() - start)
+            await hooks.callHook('embedding:after', null, error, Date.now() - start)
+            throw error
+        }
+        const result = {
+            embedding: data.data[0].embedding,
+        }
+        await hooks.callHook('embedding:success', result, Date.now() - start)
+        await hooks.callHook('embedding:after', result, null, Date.now() - start)
+
+        return result.embedding as number[]
+    }
+
     return {
         query,
+        embed,
         on,
     }
 }

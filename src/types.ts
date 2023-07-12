@@ -34,6 +34,7 @@ export enum CursiveErrorCode {
     FunctionCallError = 'function_call_error',
     CompletionError = 'completion_error',
     InvalidRequestError = 'invalid_request_error',
+    EmbeddingError = 'embedding_error',
 }
 export class CursiveError extends Error {
     constructor(message: string, public details?: any, public code?: CursiveErrorCode) {
@@ -123,6 +124,11 @@ export interface CursiveHooks {
     'completion:after': (result: ChatCompletionWithCost | null, error: CursiveError | null, duration: number) => HookResult
     'completion:error': (error: CursiveError, duration: number) => HookResult
     'completion:success': (result: ChatCompletionWithCost, duration: number) => HookResult
+    'embedding:before': (options: { model: string; input: string }) => HookResult
+    'embedding:after': (result: { embedding: number[] } | null, error: CursiveError | null, duration: number) => HookResult
+    'embedding:error': (error: CursiveError, duration: number) => HookResult
+    'embedding:success': (result: { embedding: number[] }, duration: number) => HookResult
+
 }
 
 export type CursiveHook = keyof CursiveHooks
