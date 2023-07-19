@@ -174,3 +174,12 @@ const cursive = useCursive({
     }
 })
 ```
+
+## roadmap
+
+### vendor support
+- [ ] Anthropic
+- [ ] Cohere
+- [ ] Azure OpenAI models
+- [ ] Huggingface
+- [ ] Replicate 
