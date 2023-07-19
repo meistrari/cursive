@@ -1,5 +1,7 @@
+import type { PassThrough } from 'node:stream'
 import type { EventSourceParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { createParser } from 'eventsource-parser'
+import { ReadableStream, TransformStream } from '@web-std/stream'
 import { CursiveError, CursiveErrorCode } from './types'
 
 export function getStream(res: Response): ReadableStream {
@@ -14,8 +16,11 @@ export function getStream(res: Response): ReadableStream {
         )
     }
 
-    const stream: ReadableStream = res.body as any
-
+    let stream: ReadableStream = res.body as any
+    if (!stream.pipeThrough) {
+        const passThrough = res.body as unknown as PassThrough
+        stream = passThroughToReadableStream(passThrough)
+    }
     return stream.pipeThrough ? stream.pipeThrough(eventTransformer()) : emptyStream()
 }
 
@@ -69,4 +74,23 @@ export function createDecoder() {
 
         return textDecoder.decode(chunk)
     }
+}
+
+function passThroughToReadableStream(passThrough: PassThrough) {
+    return new ReadableStream({
+        start(controller: any) {
+            passThrough.on('data', (chunk) => {
+                controller.enqueue(chunk)
+            })
+            passThrough.on('end', () => {
+                controller.close()
+            })
+            passThrough.on('error', (err) => {
+                controller.error(err)
+            })
+        },
+        cancel() {
+            passThrough.destroy()
+        },
+    }) as unknown as ReadableStream
 }

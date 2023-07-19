@@ -1,22 +1,16 @@
-import type { ChatCompletionRequestMessage } from 'openai-edge'
-import { encode } from 'gpt-token-utils'
+import type { ChatCompletionFunctions, ChatCompletionRequestMessage } from 'openai-edge'
+import { encode } from 'gpt-tokenizer'
 
-export function getUsage(messageList: ChatCompletionRequestMessage[], model: string) {
+export function getUsage(messageList: ChatCompletionRequestMessage[], model?: string) {
     const tokens = {
         perMessage: 0,
         perName: 0,
     }
 
-    if (model.startsWith('gpt-3.5')) {
-        tokens.perMessage = 4
-        tokens.perName = -1
-    }
-    else if (model.startsWith('gpt-4')) {
-        tokens.perMessage = 3
-        tokens.perName = 1
-    }
+    tokens.perMessage = 3
+    tokens.perName = 1
 
-    let tokenCount = 0
+    let tokenCount = 3
     for (const message of messageList) {
         tokenCount += tokens.perMessage
         for (const key in message) {
@@ -33,5 +27,38 @@ export function getUsage(messageList: ChatCompletionRequestMessage[], model: str
         }
     }
 
+    return tokenCount
+}
+
+export function getTokenCountFromFunctions(functions: ChatCompletionFunctions[]) {
+    let tokenCount = 3
+    for (const fn of functions) {
+        let functionTokens = encode(fn.name).length
+        functionTokens += encode(fn.description).length
+
+        if (fn.parameters?.properties) {
+            const properties = fn.parameters.properties
+            for (const key in properties) {
+                functionTokens += encode(key).length
+                const value = properties[key]
+                for (const field in value) {
+                    if (['type', 'description'].includes(field)) {
+                        functionTokens += 2
+                        functionTokens += encode(value[field]).length
+                    }
+                    else if (field === 'enum') {
+                        functionTokens -= 3
+                        for (const enumValue in value[field]) {
+                            functionTokens += 3
+                            functionTokens += encode(enumValue).length
+                        }
+                    }
+                }
+            }
+            functionTokens += 11
+        }
+        tokenCount += functionTokens
+    }
+    tokenCount += 12
     return tokenCount
 }

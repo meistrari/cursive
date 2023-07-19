@@ -26,3 +26,15 @@ export function toSnake<T>(source: T): CamelToSnakeCase<T> {
     }
     return source as CamelToSnakeCase<T>
 }
+
+export function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// Makes every key of the object null
+export type ObjectWithNullValues<T extends Record<string, any>> = {
+    [K in keyof T]: null
+}
+
+// Override keys of T with keys of U
+export type IfNull<T, U> = T extends null ? U : null

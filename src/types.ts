@@ -2,7 +2,11 @@ import type { ZodRawShape } from 'zod'
 import type { ChatCompletionRequestMessage } from 'openai-edge-fns'
 import type { CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
 import type { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef'
-import type { HookResult } from './util'
+import type { HookResult, ObjectWithNullValues, Override } from './util'
+import type { CursiveAnswer } from './cursive'
+
+type CursiveAvailableModels = 'gpt-3.5-turbo' | 'gpt-4' | (string & {})
+// | 'claude-instant' | 'claude-2'
 
 export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
@@ -30,11 +34,26 @@ export interface CursiveFunction {
     pause?: boolean
 }
 
+export interface CursiveSetupOptions {
+    openAI?: {
+        apiKey: string
+        host?: string
+    }
+    maxRetries?: number
+    expand?: {
+        enabled?: boolean
+        defaultsTo?: string
+        modelMapping?: Record<string, string>
+    }
+    debug?: boolean
+}
+
 export enum CursiveErrorCode {
     FunctionCallError = 'function_call_error',
     CompletionError = 'completion_error',
     InvalidRequestError = 'invalid_request_error',
     EmbeddingError = 'embedding_error',
+    UnknownError = 'unknown_error',
 }
 export class CursiveError extends Error {
     constructor(message: string, public details?: any, public code?: CursiveErrorCode) {
@@ -46,16 +65,16 @@ export class CursiveError extends Error {
     }
 }
 
-export type CursiveQueryOnProgress = (delta:
+export type CursiveAskOnToken = (delta:
 { functionCall: { name: string; arguments: '' } | { name: null; arguments: string }; content: null }
 | { content: string; functionCall: null }
 ) => void | Promise<void>
-interface CursiveQueryOptionsBase {
-    model?: string
+interface CursiveAskOptionsBase {
+    model?: CursiveAvailableModels
     systemMessage?: string
     functions?: CursiveFunction[]
     functionCall?: string | CursiveFunction
-    onProgress?: CursiveQueryOnProgress
+    onToken?: CursiveAskOnToken
     maxTokens?: number
     stop?: string[]
     temperature?: number
@@ -70,53 +89,51 @@ interface CursiveQueryOptionsBase {
     abortSignal?: AbortSignal
 }
 
-export interface CursiveQueryOptionsWithMessages extends CursiveQueryOptionsBase {
+export interface CursiveAskOptionsWithMessages extends CursiveAskOptionsBase {
     messages: ChatCompletionRequestMessage[]
     prompt?: never
 }
 
-export interface CursiveQueryOptionsWithPrompt extends CursiveQueryOptionsBase {
+export interface CursiveAskOptionsWithPrompt extends CursiveAskOptionsBase {
     prompt: string
     messages?: never
 }
 
-export type CursiveQueryOptions = CursiveQueryOptionsWithMessages | CursiveQueryOptionsWithPrompt
+export type CursiveAskOptions = CursiveAskOptionsWithMessages | CursiveAskOptionsWithPrompt
 
-export interface CursiveQueryUsage {
+export interface CursiveAskUsage {
     completionTokens: number
     promptTokens: number
     totalTokens: number
 }
 
-export interface CursiveQueryCost {
+export interface CursiveAskCost {
     completion: number
     prompt: number
     total: number
     version: string
 }
 
-export interface CursiveQuerySuccessResult {
-    choices: CreateChatCompletionResponse['choices']
-    id: string
-    model: string
-    usage: CursiveQueryUsage
-    cost: CursiveQueryCost
-    error: null
-    functionResult?: any
-}
+export type CursiveAnswerSuccess = CursiveAnswer<null>
+export type CursiveAnswerError = Override<ObjectWithNullValues<CursiveAnswer<CursiveError>>, { error: CursiveError }>
+export type CursiveAnswerResult = CursiveAnswerSuccess | CursiveAnswerError
 
-export interface CursiveQueryErrorResult {
+export interface CursiveAskErrorResult {
     choices: null
     id: null
     model: string
     usage: null
+    cost: null
+    answer: null
+    conversation: null
     error: CursiveError
 }
 
-export type CursiveQueryResult = Promise<CursiveQuerySuccessResult | CursiveQueryErrorResult>
-type ChatCompletionWithCost = CreateChatCompletionResponse & { cost: CursiveQueryCost }
+// export type CursiveAskResult = CursiveAnswer<null> |
+type ChatCompletionWithCost = CreateChatCompletionResponse & { cost: CursiveAskCost }
+
 export interface CursiveHooks {
-    'query:before': (options: CursiveQueryOptions) => HookResult
+    'query:before': (options: CursiveAskOptions) => HookResult
     'query:after': (result: ChatCompletionWithCost | null, error: CursiveError | null) => HookResult
     'query:error': (error: CursiveError) => HookResult
     'query:success': (result: ChatCompletionWithCost) => HookResult
@@ -128,7 +145,6 @@ export interface CursiveHooks {
     'embedding:after': (result: { embedding: number[] } | null, error: CursiveError | null, duration: number) => HookResult
     'embedding:error': (error: CursiveError, duration: number) => HookResult
     'embedding:success': (result: { embedding: number[] }, duration: number) => HookResult
-
 }
 
 export type CursiveHook = keyof CursiveHooks
