@@ -3,7 +3,7 @@
 
 Cursive is a universal and intuitive framework for interacting with LLMs.
 
-It works in any runtime and has a heavy focus on extensability and developer experience.
+It works in any JavaScript runtime and has a heavy focus on extensability and developer experience.
 
 ## highlights
 <img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers.
