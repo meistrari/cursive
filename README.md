@@ -6,17 +6,17 @@ Cursive is a universal and intuitive framework for interacting with LLMs.
 It works in any runtime and has a heavy focus on extensability and developer experience.
 
 ## highlights
-<img width=24 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers.
+<img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers.
 
-<img width=24 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache or modify the results.
+<img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache or modify the results.
 
-<img width=24 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with it's definition.
+<img width=14 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with it's definition.
 
-<img width=24 height=0 src=""/>✦ **Universal** - Cursive's goal is to bridge as manu capabilities between different models as possible. Ultimately, this means that with a single interface, you can allow your users to choose any model.
+<img width=14 height=0 src=""/>✦ **Universal** - Cursive's goal is to bridge as manu capabilities between different models as possible. Ultimately, this means that with a single interface, you can allow your users to choose any model.
 
-<img width=24 height=0 src=""/>✦ **Informative** - Cursive comes with builtin token usage and costs calculations, as accurate as possible.
+<img width=14 height=0 src=""/>✦ **Informative** - Cursive comes with builtin token usage and costs calculations, as accurate as possible.
 
-<img width=24 height=0 src=""/>✦ **Reliable** - Cursive comes with automatic retry and model expanding upon exceeding context length. Which you can always configure.
+<img width=14 height=0 src=""/>✦ **Reliable** - Cursive comes with automatic retry and model expanding upon exceeding context length. Which you can always configure.
 
 ## quickstart
 1. Install.
