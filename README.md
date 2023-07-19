@@ -1,5 +1,5 @@
-![Logo](/docs/logo-dark.png#gh-dark-mode-only)
-![Logo](/docs/logo-light.png#gh-light-mode-only)
+![Logo](/docs/logo-dark.svg#gh-dark-mode-only)
+![Logo](/docs/logo-light.svg#gh-light-mode-only)
 
 Cursive is a universal and intuitive framework for interacting with LLMs.
 
