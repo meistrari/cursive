@@ -1,7 +1,7 @@
 {
   "name": "cursive-gpt",
   "type": "module",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "packageManager": "pnpm@8.6.0",
   "description": "",
   "author": "Henrique Cunha <henrycunh@gmail.com>",
@@ -54,7 +54,8 @@
     "typescript": "^5.0.4",
     "unbuild": "^1.2.1",
     "vite": "^4.3.9",
-    "vitest": "^0.31.3"
+    "vitest": "^0.31.3",
+    "window.ai": "^0.2.4"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"

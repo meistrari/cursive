@@ -101,6 +101,9 @@ importers:
       vitest:
         specifier: ^0.31.3
         version: 0.31.3
+      window.ai:
+        specifier: ^0.2.4
+        version: 0.2.4
 
 packages:
 
@@ -4738,6 +4741,10 @@ packages:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+    dev: true
+
+  /window.ai@0.2.4:
+    resolution: {integrity: sha512-HezD3spVwlnaDS0jV4idB/2ssQw11WYps5Pc6VDndzvbjypFuVKgSaemgHqY8JpokiMzjSWLTjrWhtuWiyFwFA==}
     dev: true
 
   /word-wrap@1.2.3:

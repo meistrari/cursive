@@ -2,17 +2,16 @@ import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateC
 import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
-import { ofetch } from 'ofetch'
-import type { FetchInstance } from 'openai-edge/types/base'
-import type { CreateEmbeddingRequest } from 'openai-edge-fns'
 import { encode } from 'gpt-tokenizer'
+import { type ChatMessage, type CompletionOptions, type MessageOutput } from 'window.ai'
 import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAskOptions, CursiveAskOptionsWithPrompt, CursiveAskUsage, CursiveHook, CursiveHooks, CursiveSetupOptions } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
-import { getStream } from './stream'
-import { getTokenCountFromFunctions, getUsage } from './usage'
 import type { IfNull } from './util'
-import { sleep, toSnake } from './util'
+import { randomId, sleep, toSnake } from './util'
 import { resolveOpenAIPricing } from './pricing'
+import { createOpenAIClient, processOpenAIStream } from './vendor/openai'
+import { getUsage } from './usage'
+import { resolveVendorFromModel } from './vendor'
 
 export class Cursive {
     public _hooks: Hookable<CursiveHooks>
@@ -20,18 +19,59 @@ export class Cursive {
         openai: ReturnType<typeof createOpenAIClient>
     }
 
-    private _debugger: { close: () => void }
     public options: CursiveSetupOptions
 
-    constructor(options: CursiveSetupOptions) {
+    private _usingWindowAI = false
+    private _debugger: { close: () => void }
+    private _ready = false
+
+    constructor(options: CursiveSetupOptions = {}) {
         this._hooks = createHooks<CursiveHooks>()
         this._vendor = {
-            openai: createOpenAIClient({ apiKey: options.openAI.apiKey }),
+            openai: createOpenAIClient({ apiKey: options?.openAI?.apiKey }),
         }
         this.options = options
 
         if (options.debug)
             this._debugger = createDebugger(this._hooks, { tag: 'cursive' })
+
+        if (options.allowWindowAI === undefined || options.allowWindowAI === true) {
+            if (typeof window !== 'undefined') {
+                // Wait for the window.ai to be available, for a maximum of 5 seconds
+                const start = Date.now()
+                const interval = setInterval(() => {
+                    if (window.ai) {
+                        clearInterval(interval)
+                        this._usingWindowAI = true
+                        this._ready = true
+                        if (options.debug)
+                            console.log('[cursive] Using WindowAI')
+                    }
+                    else if (Date.now() - start > 200) {
+                        clearInterval(interval)
+                        this._ready = true
+                    }
+                }, 100)
+            }
+            else {
+                this._ready = true
+            }
+        }
+        else {
+            this._ready = true
+        }
+    }
+
+    private _readyCheck() {
+        return new Promise((resolve) => {
+            let tries = 0
+            const interval = setInterval(() => {
+                if (this._ready || ++tries > 80) {
+                    clearInterval(interval)
+                    resolve(null)
+                }
+            }, 10)
+        })
     }
 
     on<H extends CursiveHook>(event: H, callback: CursiveHooks[H]) {
@@ -41,8 +81,8 @@ export class Cursive {
     async ask(
         options: CursiveAskOptions,
     ): Promise<CursiveAnswerResult> {
+        await this._readyCheck()
         const result = await buildAnswer(options, this)
-
         if (result.error) {
             return new CursiveAnswer<CursiveError>({
                 result: null,
@@ -64,6 +104,7 @@ export class Cursive {
     }
 
     async embed(content: string) {
+        await this._readyCheck()
         const options = {
             model: 'text-embedding-ada-002',
             input: content,
@@ -185,36 +226,6 @@ export function useCursive(options: CursiveSetupOptions) {
     return new Cursive(options)
 }
 
-function createOpenAIClient(options: { apiKey: string }) {
-    const resolvedFetch: FetchInstance = ofetch.native
-
-    async function createChatCompletion(payload: CreateChatCompletionRequest, abortSignal?: AbortSignal) {
-        return resolvedFetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${options.apiKey}`,
-            },
-            body: JSON.stringify(payload),
-            signal: abortSignal,
-        })
-    }
-
-    async function createEmbedding(payload: CreateEmbeddingRequest, abortSignal?: AbortSignal) {
-        return resolvedFetch('https://api.openai.com/v1/embeddings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${options.apiKey}`,
-            },
-            body: JSON.stringify(payload),
-            signal: abortSignal,
-        })
-    }
-
-    return { createChatCompletion, createEmbedding }
-}
-
 function resolveOptions(options: CursiveAskOptions) {
     const {
         functions: _ = [],
@@ -264,79 +275,56 @@ async function createCompletion(context: {
     const { payload, abortSignal } = context
     await context.cursive._hooks.callHook('completion:before', payload)
     const start = Date.now()
-    const response = await context.cursive._vendor.openai.createChatCompletion({ ...payload }, abortSignal)
-    let data: any
 
-    if (payload.stream) {
-        const reader = getStream(response).getReader()
-        data = {
-            choices: [],
-            usage: {
-                completion_tokens: 0,
-                prompt_tokens: getUsage(payload.messages, payload.model),
-            },
-            model: payload.model,
+    let data: CreateChatCompletionResponse & { cost: CursiveAskCost; error: any }
+
+    // TODO:    Improve the completion creation based on model to vendor matching
+    //          For now this will do
+    // @ts-expect-error - We're using a private property here
+    if (context.cursive._usingWindowAI) {
+        const vendor = resolveVendorFromModel(payload.model)
+        const resolvedModel = vendor ? `${vendor}/${payload.model}` : payload.model
+
+        const options: CompletionOptions<string> = {
+            maxTokens: payload.max_tokens,
+            model: resolvedModel,
+            numOutputs: payload.n,
+            stopSequences: payload.stop as string[],
+            temperature: payload.temperature,
         }
 
-        if (payload.functions)
-            data.usage.prompt_tokens += getTokenCountFromFunctions(payload.functions)
-
-        while (true) {
-            const { done, value } = await reader.read()
-            if (done)
-                break
-
-            data = {
-                ...data,
-                id: value.id,
+        if (payload.stream && context.onToken) {
+            options.onStreamResult = (result) => {
+                const resultResolved = result as MessageOutput
+                context.onToken({ content: resultResolved.message.content, functionCall: null })
             }
-            value.choices.forEach((choice: any, i: number) => {
-                const { delta } = choice
-
-                if (!data.choices[i]) {
-                    data.choices[i] = {
-                        message: {
-                            function_call: null,
-                            role: 'assistant',
-                            content: '',
-                        },
-                    }
-                }
-
-                if (delta?.function_call?.name)
-                    data.choices[i].message.function_call = delta.function_call
-
-                if (delta?.function_call?.arguments)
-                    data.choices[i].message.function_call.arguments += delta.function_call.arguments
-
-                if (delta?.content)
-                    data.choices[i].message.content += delta.content
-
-                if (context.onToken) {
-                    let chunk: Record<string, any> | null = null
-                    if (delta?.function_call) {
-                        chunk = {
-                            functionCall: delta.function_call,
-                        }
-                    }
-
-                    if (delta?.content) {
-                        chunk = {
-                            content: delta.content,
-                        }
-                    }
-
-                    if (chunk)
-                        context.onToken(chunk as any)
-                }
-            })
         }
-        const content = data.choices[0].message.content
+
+        const response = await window.ai.generateText({
+            messages: payload.messages as ChatMessage[],
+        }, options) as MessageOutput[]
+        data.choices = response.map(choice => ({
+            message: choice.message,
+        }))
+        data.model = payload.model
+        data.id = randomId()
+        data.usage.prompt_tokens = getUsage(context.payload.messages, context.payload.model)
+        const content = data.choices.map(choice => choice.message.content).join('')
         data.usage.completion_tokens = encode(content).length
         data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+        // If we're the model is from OpenAI, we can get the usage and costs
     }
     else {
-        data = await response.json()
+        const response = await context.cursive._vendor.openai.createChatCompletion({ ...payload }, abortSignal)
+        if (payload.stream) {
+            data = await processOpenAIStream({ ...context, response })
+            const content = data.choices.map(choice => choice.message.content).join('')
+            data.usage.completion_tokens = encode(content).length
+            data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+        }
+        else {
+            data = await response.json()
+        }
     }
 
     const end = Date.now()
@@ -388,6 +376,7 @@ async function askModel(
     }), CursiveError)
 
     if (completion.error) {
+        console.log(completion.error)
         if (!completion.error?.details)
             throw new CursiveError('Unknown error', completion.error, CursiveErrorCode.UnknownError)
 
