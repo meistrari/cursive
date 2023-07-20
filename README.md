@@ -6,7 +6,7 @@ Cursive is a universal and intuitive framework for interacting with LLMs.
 It works in any JavaScript runtime and has a heavy focus on extensability and developer experience.
 
 ## highlights
-<img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers.
+<img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers. Through [WindowAI](https://windowai.io), users can securely bring their own API and model to completions.
 
 <img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache or modify the results.
 
@@ -170,7 +170,8 @@ const cursive = useCursive({
         modelMapping: {
             'gpt-3.5-turbo': 'gpt-3.5-turbo-16k',
             'gpt-4': 'gpt-4-32k',
-        }
+        },
+        allowWindowAI: true
     }
 })
 ```
