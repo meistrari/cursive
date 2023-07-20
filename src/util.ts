@@ -38,3 +38,7 @@ export type ObjectWithNullValues<T extends Record<string, any>> = {
 
 // Override keys of T with keys of U
 export type IfNull<T, U> = T extends null ? U : null
+
+export function randomId() {
+    return Math.random().toString(36).substring(7)
+}
