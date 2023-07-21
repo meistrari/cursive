@@ -3,18 +3,18 @@
 
 Cursive is a universal and intuitive framework for interacting with LLMs.
 
-It works in any JavaScript runtime and has a heavy focus on extensability and developer experience.
+It works in any JavaScript runtime and has a heavy focus on extensibility and developer experience.
 
 ## highlights
-<img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers. Through [WindowAI](https://windowai.io), users can securely bring their own API and model to completions.
+<img width=14 height=0 src=""/>✦ **Universal** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers. Through [WindowAI](https://windowai.io), users can securely bring their own credentials, provider, and model to completions.
 
-<img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache or modify the results.
+<img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache, or modify the results.
 
-<img width=14 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with it's definition.
+<img width=14 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with its definition.
 
-<img width=14 height=0 src=""/>✦ **Universal** - Cursive's goal is to bridge as manu capabilities between different models as possible. Ultimately, this means that with a single interface, you can allow your users to choose any model.
+<img width=14 height=0 src=""/>✦ **Universal** - Cursive's goal is to bridge as many capabilities between different models as possible. Ultimately, this means that with a single interface, you can allow your users to choose any model.
 
-<img width=14 height=0 src=""/>✦ **Informative** - Cursive comes with builtin token usage and costs calculations, as accurate as possible.
+<img width=14 height=0 src=""/>✦ **Informative** - Cursive comes with built-in token usage and costs calculations, as accurate as possible.
 
 <img width=14 height=0 src=""/>✦ **Reliable** - Cursive comes with automatic retry and model expanding upon exceeding context length. Which you can always configure.
 
@@ -47,7 +47,7 @@ Chaining a conversation is easy with `cursive`. You can pass any of the options 
 
 ```ts
 const resA = await cursive.ask({
-    prompt: 'Give me a good name for an gecko.',
+    prompt: 'Give me a good name for a gecko.',
     model: 'gpt-4',
     maxTokens: 16,
 })
@@ -55,7 +55,7 @@ const resA = await cursive.ask({
 console.log(resA.answer) // Zephyr
 
 const resB = await resA.conversation.ask({
-    prompt: 'How would you say it in portuguese?'
+    prompt: 'How would you say it in Portuguese?'
 })
 
 console.log(resB.answer) // Zéfiro
@@ -105,7 +105,7 @@ const { answer } = await cursive.ask({
 console.log(answer) // The sum of 232 and 243 is 475.
 ```
 
-The functions' result will automatically fed into the conversation and another completion will be made. If you want to prevent this, you can add `pause` to your function definition.
+The functions' result will automatically be fed into the conversation and another completion will be made. If you want to prevent this, you can add `pause` to your function definition.
 
 ```ts
 const createCharacter = createFunction({
