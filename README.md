@@ -157,7 +157,7 @@ const embedding = await cursive.embed('This should be a document.')
 This will support different types of documents and integrations pretty soon.
 
 ### Reliability
-Cursive comes with automatic retry with backoff and model expanding upon exceeding context length -- which means that it tries again with a model with a bigger context length when it fails by running out of it.
+Cursive comes with automatic retry with backoff upon failing completions, and model expanding upon exceeding context length -- which means that it tries again with a model with a bigger context length when it fails by running out of it.
 
 You can configure this behavior by passing the `retry` and `expand` options to `useCursive`.
 
@@ -169,7 +169,7 @@ const cursive = useCursive({
         defaultsTo: 'gpt-3.5-turbo-16k',
         modelMapping: {
             'gpt-3.5-turbo': 'gpt-3.5-turbo-16k',
-            'gpt-4': 'gpt-4-32k',
+            'gpt-4': 'claude-2',
         },
         allowWindowAI: true
     }
@@ -179,8 +179,8 @@ const cursive = useCursive({
 ## roadmap
 
 ### vendor support
-- [ ] Anthropic
-- [ ] Cohere
+- [ ] Anthropic (works on browser through WindowAI)
+- [ ] Cohere (works on browser through WindowAI)
 - [ ] Azure OpenAI models
-- [ ] Huggingface
-- [ ] Replicate 
+- [ ] Huggingface (works on browser through WindowAI)
+- [ ] Replicate (works on browser through WindowAI)
