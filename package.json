@@ -1,7 +1,7 @@
 {
   "name": "cursive-gpt",
   "type": "module",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "packageManager": "pnpm@8.6.0",
   "description": "",
   "author": "Henrique Cunha <henrycunh@gmail.com>",
