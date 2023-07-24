@@ -1,7 +1,10 @@
 import type { ChatCompletionFunctions, ChatCompletionRequestMessage } from 'openai-edge'
-import { encode } from 'gpt-tokenizer'
+import { encode } from '@meistrari/gpt-tokenizer/esm/encoding/cl100k_base'
 
-export function getUsage(messageList: ChatCompletionRequestMessage[], model?: string) {
+export function getOpenAIUsage(contentOrMessageList: string | ChatCompletionRequestMessage[]) {
+    if (typeof contentOrMessageList === 'string')
+        return encode(contentOrMessageList).length
+
     const tokens = {
         perMessage: 0,
         perName: 0,
@@ -11,7 +14,7 @@ export function getUsage(messageList: ChatCompletionRequestMessage[], model?: st
     tokens.perName = 1
 
     let tokenCount = 3
-    for (const message of messageList) {
+    for (const message of contentOrMessageList) {
         tokenCount += tokens.perMessage
         for (const key in message) {
             if (key === 'name')

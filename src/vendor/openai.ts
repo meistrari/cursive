@@ -4,7 +4,7 @@ import type { FetchInstance } from 'openai-edge/types/base'
 import type { Cursive } from '../cursive'
 import type { CursiveAskOnToken } from '../types'
 import { getStream } from '../stream'
-import { getTokenCountFromFunctions, getUsage } from '../usage'
+import { getOpenAIUsage, getTokenCountFromFunctions } from '../usage/openai'
 
 export function createOpenAIClient(options: { apiKey: string }) {
     const resolvedFetch: FetchInstance = ofetch.native
@@ -45,15 +45,17 @@ export async function processOpenAIStream(context: {
 }) {
     let data: any
 
-    const reader = getStream(context.response).getReader()
+    const reader = (await getStream(context.response)).getReader()
+
     data = {
         choices: [],
         usage: {
             completion_tokens: 0,
-            prompt_tokens: getUsage(context.payload.messages, context.payload.model),
+            prompt_tokens: getOpenAIUsage(context.payload.messages),
         },
         model: context.payload.model,
     }
+    console.log(data)
 
     if (context.payload.functions)
         data.usage.prompt_tokens += getTokenCountFromFunctions(context.payload.functions)
@@ -67,6 +69,7 @@ export async function processOpenAIStream(context: {
             ...data,
             id: value.id,
         }
+
         value.choices.forEach((choice: any, i: number) => {
             const { delta } = choice
 

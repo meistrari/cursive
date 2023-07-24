@@ -4,13 +4,13 @@ import { createParser } from 'eventsource-parser'
 import { ReadableStream, TransformStream } from '@web-std/stream'
 import { CursiveError, CursiveErrorCode } from './types'
 
-export function getStream(res: Response): ReadableStream {
+export async function getStream(res: Response): Promise<ReadableStream> {
     if (!res.ok) {
+        const { error } = await res.json()
         throw new CursiveError(
-            res.statusText,
+            error.message,
             {
-                status: res.status,
-                statusText: res.statusText,
+                ...error,
             },
             CursiveErrorCode.CompletionError,
         )

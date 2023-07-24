@@ -8,15 +8,18 @@ import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAsk
 import { CursiveError, CursiveErrorCode } from './types'
 import type { IfNull } from './util'
 import { randomId, sleep, toSnake } from './util'
-import { resolveOpenAIPricing } from './pricing'
+import { resolveAnthropicPricing, resolveOpenAIPricing } from './pricing'
 import { createOpenAIClient, processOpenAIStream } from './vendor/openai'
-import { getUsage } from './usage'
 import { resolveVendorFromModel } from './vendor'
+import { createAnthropicClient, processAnthropicStream } from './vendor/anthropic'
+import { getOpenAIUsage } from './usage/openai'
+import { getAnthropicUsage } from './usage/anthropic'
 
 export class Cursive {
     public _hooks: Hookable<CursiveHooks>
     public _vendor: {
         openai: ReturnType<typeof createOpenAIClient>
+        anthropic: ReturnType<typeof createAnthropicClient>
     }
 
     public options: CursiveSetupOptions
@@ -29,6 +32,7 @@ export class Cursive {
         this._hooks = createHooks<CursiveHooks>()
         this._vendor = {
             openai: createOpenAIClient({ apiKey: options?.openAI?.apiKey }),
+            anthropic: createAnthropicClient({ apiKey: options?.anthropic?.apiKey }),
         }
         this.options = options
 
@@ -47,7 +51,7 @@ export class Cursive {
                         if (options.debug)
                             console.log('[cursive] Using WindowAI')
                     }
-                    else if (Date.now() - start > 200) {
+                    else if (Date.now() - start > 500) {
                         clearInterval(interval)
                         this._ready = true
                     }
@@ -277,12 +281,12 @@ async function createCompletion(context: {
     const start = Date.now()
 
     let data: CreateChatCompletionResponse & { cost: CursiveAskCost; error: any }
+    const vendor = resolveVendorFromModel(payload.model)
 
     // TODO:    Improve the completion creation based on model to vendor matching
     //          For now this will do
     // @ts-expect-error - We're using a private property here
     if (context.cursive._usingWindowAI) {
-        const vendor = resolveVendorFromModel(payload.model)
         const resolvedModel = vendor ? `${vendor}/${payload.model}` : payload.model
 
         const options: CompletionOptions<string> = {
@@ -303,28 +307,81 @@ async function createCompletion(context: {
         const response = await window.ai.generateText({
             messages: payload.messages as ChatMessage[],
         }, options) as MessageOutput[]
+        data = {} as any
         data.choices = response.map(choice => ({
             message: choice.message,
         }))
         data.model = payload.model
         data.id = randomId()
-        data.usage.prompt_tokens = getUsage(context.payload.messages, context.payload.model)
+
         const content = data.choices.map(choice => choice.message.content).join('')
-        data.usage.completion_tokens = encode(content).length
-        data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
-        // If we're the model is from OpenAI, we can get the usage and costs
-    }
-    else {
-        const response = await context.cursive._vendor.openai.createChatCompletion({ ...payload }, abortSignal)
-        if (payload.stream) {
-            data = await processOpenAIStream({ ...context, response })
-            const content = data.choices.map(choice => choice.message.content).join('')
+
+        if (vendor === 'openai') {
+            data.usage.prompt_tokens = getOpenAIUsage(context.payload.messages)
+            data.usage.completion_tokens = getOpenAIUsage(content)
+        }
+
+        else if (vendor === 'anthropic') {
+            data.usage.prompt_tokens = getAnthropicUsage(context.payload.messages)
+            data.usage.completion_tokens = getAnthropicUsage(content)
+        }
+
+        else {
+            // TODO: Create better estimations for other vendors
+            data.usage.prompt_tokens = getOpenAIUsage(context.payload.messages)
             data.usage.completion_tokens = encode(content).length
             data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
         }
-        else {
-            data = await response.json()
+    }
+    else {
+        if (vendor === 'openai') {
+            const response = await context.cursive._vendor.openai.createChatCompletion({ ...payload }, abortSignal)
+            if (payload.stream) {
+                data = await processOpenAIStream({ ...context, response })
+                const content = data.choices.map(choice => choice.message.content).join('')
+                data.usage.completion_tokens = getOpenAIUsage(content)
+                data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+            }
+            else {
+                data = await response.json()
+            }
         }
+        else if (vendor === 'anthropic') {
+            const response = await context.cursive._vendor.anthropic({ ...payload }, abortSignal)
+            if (payload.stream) {
+                data = await processAnthropicStream({ ...context, response })
+            }
+            else {
+                const responseData = await response.json()
+                data = {
+                    choices: [{ message: { content: responseData.completion.trimStart() } }],
+                    model: payload.model,
+                    id: randomId(),
+                    usage: {} as any,
+                } as any
+                if (responseData.error)
+                    throw new CursiveError(responseData.error.message, responseData.error, CursiveErrorCode.CompletionError)
+            }
+
+            data.usage.prompt_tokens = getAnthropicUsage(context.payload.messages)
+            data.usage.completion_tokens = getAnthropicUsage(data.choices[0].message.content)
+            data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+        }
+    }
+
+    if (vendor === 'openai') {
+        data.cost = resolveOpenAIPricing({
+            completionTokens: data.usage.completion_tokens,
+            promptTokens: data.usage.prompt_tokens,
+            totalTokens: data.usage.total_tokens,
+        }, data.model)
+    }
+    else if (vendor === 'anthropic') {
+        data.cost = resolveAnthropicPricing({
+            completionTokens: data.usage.completion_tokens,
+            promptTokens: data.usage.prompt_tokens,
+            totalTokens: data.usage.total_tokens,
+        }, data.model)
     }
 
     const end = Date.now()
@@ -336,12 +393,6 @@ async function createCompletion(context: {
         throw error
     }
 
-    data.cost = resolveOpenAIPricing({
-        completionTokens: data.usage.completion_tokens,
-        promptTokens: data.usage.prompt_tokens,
-        totalTokens: data.usage.total_tokens,
-    }, data.model)
-
     await context.cursive._hooks.callHook('completion:success', data, end - start)
     await context.cursive._hooks.callHook('completion:after', data, null, end - start)
 
@@ -352,7 +403,7 @@ async function askModel(
     options: CursiveAskOptions,
     cursive: Cursive,
 ): Promise<{
-        answer: CreateChatCompletionResponse & { functionResult?: any }
+        answer: CreateChatCompletionResponse & { functionResult?: any; cost: CursiveAskCost }
         messages: ChatCompletionRequestMessage[]
     }> {
     await cursive._hooks.callHook('query:before', options)
@@ -376,9 +427,8 @@ async function askModel(
     }), CursiveError)
 
     if (completion.error) {
-        console.log(completion.error)
         if (!completion.error?.details)
-            throw new CursiveError('Unknown error', completion.error, CursiveErrorCode.UnknownError)
+            throw new CursiveError(`Unknown error: ${completion.error.message}`, completion.error, CursiveErrorCode.UnknownError)
 
         const cause = completion.error.details.code || completion.error.details.type
         if (cause === 'context_length_exceeded') {
@@ -525,14 +575,12 @@ async function buildAnswer(
             totalTokens: result.data.answer.usage!.total_tokens,
         }
 
-        const cost = resolveOpenAIPricing(usage, result.data.answer.model)
-
         const newMessage = {
             error: null,
             model: result.data.answer.model,
             id: result.data.answer.id,
             usage,
-            cost,
+            cost: result.data.answer.cost,
             choices: result.data.answer.choices.map(choice => choice.message.content),
             functionResult: result.data.answer.functionResult || null,
             answer: result.data.answer.choices[result.data.answer.choices.length - 1].message.content,

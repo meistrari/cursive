@@ -5,8 +5,9 @@ import type { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef'
 import type { HookResult, ObjectWithNullValues, Override } from './util'
 import type { CursiveAnswer } from './cursive'
 
-export type CursiveAvailableModels = 'gpt-3.5-turbo' | 'gpt-4' | (string & {})
-// | 'claude-instant' | 'claude-2'
+export type CursiveAvailableModels = (string & {})
+/* OpenAI        */ | 'gpt-3.5-turbo' | 'gpt-4'
+/* Anthropic     */ | 'claude-instant' | 'claude-2'
 
 export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
@@ -38,6 +39,9 @@ export interface CursiveSetupOptions {
     openAI?: {
         apiKey: string
         host?: string
+    }
+    anthropic?: {
+        apiKey: string
     }
     maxRetries?: number
     expand?: {

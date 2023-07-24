@@ -176,10 +176,15 @@ const cursive = useCursive({
 })
 ```
 
+## examples
+
+-  <img src="https://seeklogo.com/images/N/nuxt-logo-64E0472AA8-seeklogo.com.png" width=16/> **[Nuxt ⇢ Simple Application](https://github.com/meistrari/cursive/blob/main/examples/nuxt)**
+-  <img src="https://seeklogo.com/images/C/cloudflare-workers-logo-9BF89B51E2-seeklogo.com.png" width=16/> **[Cloudflare Workers ⇢ Simple Edge API](https://github.com/meistrari/cursive/blob/main/examples/cf-workers)**
+
 ## roadmap
 
 ### vendor support
-- [ ] Anthropic (works on browser through WindowAI)
+- [x] Anthropic
 - [ ] Cohere (works on browser through WindowAI)
 - [ ] Azure OpenAI models
 - [ ] Huggingface (works on browser through WindowAI)
