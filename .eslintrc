@@ -1,6 +1,12 @@
 {
   "extends": "@antfu",
   "rules": {
-    "@typescript-eslint/indent": ["error", 4]
-  }
+    "@typescript-eslint/indent": ["error", 4],
+    "no-console": "off"
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "examples/"
+  ]
 }

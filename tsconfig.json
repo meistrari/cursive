@@ -5,5 +5,9 @@
     "target": "ESNext",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
-  }
+  },
+  "exclude": [
+    "examples",
+    "dist"
+  ]
 }
