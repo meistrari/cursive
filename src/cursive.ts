@@ -11,7 +11,7 @@ import { randomId, sleep, toSnake } from './util'
 import { resolveAnthropicPricing, resolveOpenAIPricing } from './pricing'
 import { createOpenAIClient, processOpenAIStream } from './vendor/openai'
 import { resolveVendorFromModel } from './vendor'
-import { createAnthropicClient, processAnthropicStream } from './vendor/anthropic'
+import { createAnthropicClient, getAnthropicFunctionCallDirectives, processAnthropicStream } from './vendor/anthropic'
 import { getOpenAIUsage } from './usage/openai'
 import { getAnthropicUsage } from './usage/anthropic'
 
@@ -232,7 +232,7 @@ export function useCursive(options: CursiveSetupOptions) {
 
 function resolveOptions(options: CursiveAskOptions) {
     const {
-        functions: _ = [],
+        functions = [],
         messages = [],
         model = 'gpt-3.5-turbo-0613',
         systemMessage,
@@ -242,8 +242,14 @@ function resolveOptions(options: CursiveAskOptions) {
         ...rest
     } = options
 
+    // TODO: Add support for function call resolving
+    const vendor = resolveVendorFromModel(model)
+    let resolvedSystemMessage = ''
+    if (vendor === 'anthropic' && functions.length > 0)
+        resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions)}`
+
     const queryMessages = [
-        systemMessage && { role: 'system', content: systemMessage },
+        resolvedSystemMessage && { role: 'system', content: resolvedSystemMessage },
         ...messages,
         prompt && { role: 'user', content: prompt },
     ].filter(Boolean) as ChatCompletionRequestMessage[]
@@ -363,9 +369,30 @@ async function createCompletion(context: {
                     throw new CursiveError(responseData.error.message, responseData.error, CursiveErrorCode.CompletionError)
             }
 
+            // We check for function call in the completion
+            const hasFunctionCallRegex = /<function-call>([^<]+)<\/function-call>/
+            const functionCallMatches = data.choices[0].message.content.match(hasFunctionCallRegex)
+
+            if (functionCallMatches) {
+                const functionCall = JSON.parse(functionCallMatches[1].trim())
+                console.log(functionCall)
+                data.choices[0].message.function_call = {
+                    name: functionCall.name,
+                    arguments: JSON.stringify(functionCall.arguments),
+                }
+            }
+
             data.usage.prompt_tokens = getAnthropicUsage(context.payload.messages)
             data.usage.completion_tokens = getAnthropicUsage(data.choices[0].message.content)
             data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+
+            // We check for answers in the completion
+            const hasAnswerRegex = /<cursive-answer>([^<]+)<\/cursive-answer>/
+            const answerMatches = data.choices[0].message.content.match(hasAnswerRegex)
+            if (answerMatches) {
+                const answer = answerMatches[1].trim()
+                data.choices[0].message.content = answer
+            }
         }
     }
 

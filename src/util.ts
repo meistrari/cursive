@@ -42,3 +42,19 @@ export type IfNull<T, U> = T extends null ? U : null
 export function randomId() {
     return Math.random().toString(36).substring(7)
 }
+
+export function trim(content: string) {
+    const lines = content.split('\n')
+    let minIndent = Number.POSITIVE_INFINITY
+    for (const line of lines) {
+        const indent = line.search(/\S/)
+        if (indent !== -1)
+            minIndent = Math.min(minIndent, indent)
+    }
+
+    content = ''
+    for (const line of lines)
+        content += `${line.slice(minIndent)}\n`
+
+    return content.trim()
+}

@@ -8,7 +8,8 @@ import type { CursiveAnswer } from './cursive'
 export type CursiveAvailableModels =
 /* OpenAI        */ 'gpt-3.5-turbo' | 'gpt-4'
 /* Anthropic     */ | 'claude-instant' | 'claude-2'
-/* Allow any     */ | (string & object)
+// eslint-disable-next-line @typescript-eslint/ban-types
+/* Allow any     */ | (string & {})
 
 export type InferredFunctionParameters<T extends ZodRawShape> = {
     [K in keyof T]: T[K]['_type']
