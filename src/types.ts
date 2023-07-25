@@ -7,7 +7,7 @@ import type { CursiveAnswer } from './cursive'
 
 export type CursiveAvailableModels =
 /* OpenAI        */ 'gpt-3.5-turbo' | 'gpt-4'
-/* Anthropic     */ | 'claude-instant' | 'claude-2'
+/* Anthropic     */ | 'claude-instant-1' | 'claude-2'
 // eslint-disable-next-line @typescript-eslint/ban-types
 /* Allow any     */ | (string & {})
 
