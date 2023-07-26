@@ -10,7 +10,7 @@ It works in any JavaScript runtime and has a heavy focus on extensibility and de
 
 <img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache, or modify the results.
 
-<img width=14 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with its definition.
+<img width=14 height=0 src=""/>✦ **Functions** - Easily describe functions that the LLM can use along with its definition, with any model (currently supporting GPT-4, GPT-3.5, Claude 2, and Claude Instant)
 
 <img width=14 height=0 src=""/>✦ **Universal** - Cursive's goal is to bridge as many capabilities between different models as possible. Ultimately, this means that with a single interface, you can allow your users to choose any model.
 
