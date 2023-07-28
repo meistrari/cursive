@@ -319,7 +319,7 @@ async function createCompletion(context: {
         }))
         data.model = payload.model
         data.id = randomId()
-
+        data.usage = {} as any
         const content = data.choices.map(choice => choice.message.content).join('')
 
         if (vendor === 'openai') {

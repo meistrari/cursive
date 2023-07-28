@@ -7,14 +7,15 @@ if (process.client) {
     const cursive = useCursive({
         openAI: { apiKey: 'sk-***' },
     })
-
+    console.log('asking')
     cursive.ask({
         prompt: 'What is your name?',
+        model: 'gpt-4',
         onToken: (token) => {
             data.value += token.content
         },
         stream: true,
-    })
+    }).then(console.log)
 }
 </script>
 
