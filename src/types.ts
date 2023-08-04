@@ -56,6 +56,10 @@ export interface CursiveSetupOptions {
      * Allows for the usage of WindowAI
      */
     allowWindowAI?: boolean
+    /**
+     * Count usage and pricing for each completion
+     */
+    countUsage?: boolean
 }
 
 export enum CursiveErrorCode {

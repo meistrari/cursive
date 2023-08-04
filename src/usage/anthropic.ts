@@ -1,7 +1,8 @@
-import { encode } from '@meistrari/gpt-tokenizer/esm/encoding/claude'
 import type { ChatCompletionRequestMessage } from 'openai-edge'
 
-export function getAnthropicUsage(content: string | ChatCompletionRequestMessage[]) {
+export async function getAnthropicUsage(content: string | ChatCompletionRequestMessage[]) {
+    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/claude')
+
     if (typeof content === 'string')
         return encode(content).length
 

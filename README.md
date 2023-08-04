@@ -171,8 +171,9 @@ const cursive = useCursive({
             'gpt-3.5-turbo': 'gpt-3.5-turbo-16k',
             'gpt-4': 'claude-2',
         },
-        allowWindowAI: true
-    }
+    },
+    allowWindowAI: true,
+    countUsage: false, // When disabled doesn't load and execute token counting and price estimates
 })
 ```
 

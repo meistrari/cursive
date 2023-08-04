@@ -1,7 +1,8 @@
 import type { ChatCompletionFunctions, ChatCompletionRequestMessage } from 'openai-edge'
-import { encode } from '@meistrari/gpt-tokenizer/esm/encoding/cl100k_base'
 
-export function getOpenAIUsage(contentOrMessageList: string | ChatCompletionRequestMessage[]) {
+export async function getOpenAIUsage(contentOrMessageList: string | ChatCompletionRequestMessage[]) {
+    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/cl100k_base')
+
     if (typeof contentOrMessageList === 'string')
         return encode(contentOrMessageList).length
 
@@ -33,7 +34,9 @@ export function getOpenAIUsage(contentOrMessageList: string | ChatCompletionRequ
     return tokenCount
 }
 
-export function getTokenCountFromFunctions(functions: ChatCompletionFunctions[]) {
+export async function getTokenCountFromFunctions(functions: ChatCompletionFunctions[]) {
+    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/cl100k_base')
+
     let tokenCount = 3
     for (const fn of functions) {
         let functionTokens = encode(fn.name).length

@@ -2,7 +2,6 @@ import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateC
 import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
-import { encode } from 'gpt-tokenizer'
 import { type ChatMessage, type CompletionOptions, type MessageOutput } from 'window.ai'
 import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAskOptions, CursiveAskOptionsWithPrompt, CursiveAskUsage, CursiveHook, CursiveHooks, CursiveSetupOptions } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
@@ -28,7 +27,9 @@ export class Cursive {
     private _debugger: { close: () => void }
     private _ready = false
 
-    constructor(options: CursiveSetupOptions = {}) {
+    constructor(options: CursiveSetupOptions = {
+        countUsage: true,
+    }) {
         this._hooks = createHooks<CursiveHooks>()
         this._vendor = {
             openai: createOpenAIClient({ apiKey: options?.openAI?.apiKey }),
@@ -41,7 +42,7 @@ export class Cursive {
 
         if (options.allowWindowAI === undefined || options.allowWindowAI === true) {
             if (typeof window !== 'undefined') {
-                // Wait for the window.ai to be available, for a maximum of 5 seconds
+                // Wait for the window.ai to be available, for a maximum of half a second
                 const start = Date.now()
                 const interval = setInterval(() => {
                     if (window.ai) {
@@ -319,24 +320,30 @@ async function createCompletion(context: {
         }))
         data.model = payload.model
         data.id = randomId()
-        data.usage = {} as any
-        const content = data.choices.map(choice => choice.message.content).join('')
+        data.usage = {
+            prompt_tokens: null,
+            completion_tokens: null,
+            total_tokens: null,
+        } as any
 
-        if (vendor === 'openai') {
-            data.usage.prompt_tokens = getOpenAIUsage(context.payload.messages)
-            data.usage.completion_tokens = getOpenAIUsage(content)
-        }
+        if (context.cursive.options.countUsage) {
+            const content = data.choices.map(choice => choice.message.content).join('')
+            if (vendor === 'openai') {
+                data.usage.prompt_tokens = await getOpenAIUsage(context.payload.messages)
+                data.usage.completion_tokens = await getOpenAIUsage(content)
+            }
 
-        else if (vendor === 'anthropic') {
-            data.usage.prompt_tokens = getAnthropicUsage(context.payload.messages)
-            data.usage.completion_tokens = getAnthropicUsage(content)
-        }
+            else if (vendor === 'anthropic') {
+                data.usage.prompt_tokens = await getAnthropicUsage(context.payload.messages)
+                data.usage.completion_tokens = await getAnthropicUsage(content)
+            }
 
-        else {
-            // TODO: Create better estimations for other vendors
-            data.usage.prompt_tokens = getOpenAIUsage(context.payload.messages)
-            data.usage.completion_tokens = encode(content).length
-            data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+            else {
+                // TODO: Create better estimations for other vendors
+                data.usage.prompt_tokens = await getOpenAIUsage(context.payload.messages)
+                data.usage.completion_tokens = await getOpenAIUsage(content)
+                data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+            }
         }
     }
     else {
@@ -345,8 +352,10 @@ async function createCompletion(context: {
             if (payload.stream) {
                 data = await processOpenAIStream({ ...context, response })
                 const content = data.choices.map(choice => choice.message.content).join('')
-                data.usage.completion_tokens = getOpenAIUsage(content)
-                data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+                if (context.cursive.options.countUsage) {
+                    data.usage.completion_tokens = await getOpenAIUsage(content)
+                    data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+                }
             }
             else {
                 data = await response.json()
@@ -381,11 +390,11 @@ async function createCompletion(context: {
                     arguments: JSON.stringify(functionCall.arguments),
                 }
             }
-
-            data.usage.prompt_tokens = getAnthropicUsage(context.payload.messages)
-            data.usage.completion_tokens = getAnthropicUsage(data.choices[0].message.content)
-            data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
-
+            if (context.cursive.options.countUsage) {
+                data.usage.prompt_tokens = await getAnthropicUsage(context.payload.messages)
+                data.usage.completion_tokens = await getAnthropicUsage(data.choices[0].message.content)
+                data.usage.total_tokens = data.usage.completion_tokens + data.usage.prompt_tokens
+            }
             // We check for answers in the completion
             const hasAnswerRegex = /<cursive-answer>([^<]+)<\/cursive-answer>/
             const answerMatches = data.choices[0].message.content.match(hasAnswerRegex)
@@ -395,20 +404,24 @@ async function createCompletion(context: {
             }
         }
     }
-
-    if (vendor === 'openai') {
-        data.cost = resolveOpenAIPricing({
-            completionTokens: data.usage.completion_tokens,
-            promptTokens: data.usage.prompt_tokens,
-            totalTokens: data.usage.total_tokens,
-        }, data.model)
+    if (context.cursive.options.countUsage) {
+        if (vendor === 'openai') {
+            data.cost = resolveOpenAIPricing({
+                completionTokens: data.usage.completion_tokens,
+                promptTokens: data.usage.prompt_tokens,
+                totalTokens: data.usage.total_tokens,
+            }, data.model)
+        }
+        else if (vendor === 'anthropic') {
+            data.cost = resolveAnthropicPricing({
+                completionTokens: data.usage.completion_tokens,
+                promptTokens: data.usage.prompt_tokens,
+                totalTokens: data.usage.total_tokens,
+            }, data.model)
+        }
     }
-    else if (vendor === 'anthropic') {
-        data.cost = resolveAnthropicPricing({
-            completionTokens: data.usage.completion_tokens,
-            promptTokens: data.usage.prompt_tokens,
-            totalTokens: data.usage.total_tokens,
-        }, data.model)
+    else {
+        data.cost = null
     }
 
     const end = Date.now()
