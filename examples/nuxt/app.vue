@@ -9,6 +9,7 @@ if (process.client) {
     })
     console.log('asking')
     cursive.ask({
+        systemMessage: 'Hello, I am Cursive. I am an AI that can write text for you.',
         prompt: 'What is your name?',
         model: 'gpt-4',
         onToken: (token) => {

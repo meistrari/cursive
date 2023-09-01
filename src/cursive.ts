@@ -245,7 +245,8 @@ function resolveOptions(options: CursiveAskOptions) {
 
     // TODO: Add support for function call resolving
     const vendor = resolveVendorFromModel(model)
-    let resolvedSystemMessage = ''
+    let resolvedSystemMessage = systemMessage || ''
+
     if (vendor === 'anthropic' && functions.length > 0)
         resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions)}`
 
