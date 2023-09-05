@@ -250,9 +250,15 @@ function resolveOptions(options: CursiveAskOptions) {
     if (vendor === 'anthropic' && functions.length > 0)
         resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions)}`
 
+    const hasSystemMessage = messages.some(message => message.role === 'system')
+
+    let filteredMessages = messages
+    if (hasSystemMessage && resolvedSystemMessage)
+        filteredMessages = messages.filter(message => message.role !== 'system')
+
     const queryMessages = [
         resolvedSystemMessage && { role: 'system', content: resolvedSystemMessage },
-        ...messages,
+        ...filteredMessages,
         prompt && { role: 'user', content: prompt },
     ].filter(Boolean) as ChatCompletionRequestMessage[]
 

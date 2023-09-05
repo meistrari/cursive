@@ -75,9 +75,10 @@ console.log(result.usage.totalTokens) // 40
 ```
 
 ### Functions
-You can use `zod` to define and describe functions, along side with their execution code.
+You can use `Type` to define and describe functions, along side with their execution code.
+This is powered by the [**`typebox`**](https://github.com/sinclairzx81/typebox) library.
 ```ts
-import { createFunction, useCursive, z } from 'cursive-gpt'
+import { Type, createFunction, useCursive } from 'cursive-gpt'
 
 const cursive = useCursive({
     openAI: {
@@ -87,10 +88,10 @@ const cursive = useCursive({
 
 const sum = createFunction({
     name: 'sum',
-    description: 'sums two numbers',
+    description: 'Sums two numbers',
     parameters: {
-        a: z.number().describe('Number A'),
-        b: z.number().describe('Number B'),
+        a: Type.Number({ description: 'Number A' }),
+        b: Type.Number({ description: 'Number B' }),
     },
     async execute({ a, b }) {
         return a + b
@@ -112,12 +113,13 @@ const createCharacter = createFunction({
     name: 'createCharacter',
     description: 'Creates a character',
     parameters: {
-        name: z.string().describe('The name of the character'),
-        age: z.number().describe('The age of the character'),
+        name: Type.String({ description: 'The name of the character' }),
+        age: Type.Number({ description: 'The age of the character' }),
+        hairColor: Type.StringEnum(['black', 'brown', 'blonde', 'red', 'white'], { description: 'The hair color of the character' }),
     },
     pause: true,
-    async execute({ name, age }) {
-        return { name, age }
+    async execute({ name, age, hairColor }) {
+        return { name, age, hairColor }
     },
 })
 
@@ -128,6 +130,8 @@ const { functionResult } = await cursive.ask({
 
 console.log(functionResult) // { name: 'John', age: 23 }
 ```
+
+If you're on a `0.x.x` version, you can check here for the [old documentation](https://github.com/meistrari/cursive/tree/v0.12.2).
 
 ### Hooks
 You can hook into any part of the completion life cycle.

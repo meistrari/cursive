@@ -42,6 +42,7 @@
     "@antfu/ni": "^0.21.3",
     "@antfu/utils": "^0.7.4",
     "@nuxt/kit": "^3.6.5",
+    "@sinclair/typebox": "^0.31.10",
     "@types/node": "^18.16.16",
     "@types/whatwg-streams": "^3.2.1",
     "bumpp": "^9.1.0",

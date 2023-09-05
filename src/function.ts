@@ -1,21 +1,18 @@
-import type { ZodRawShape } from 'zod'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-import type { JsonSchema7ObjectType } from 'zod-to-json-schema/src/parsers/object'
-import { z } from 'zod'
+import { type TProperties, Type } from '@sinclair/typebox'
 import type { CursiveCreateFunctionOptions, CursiveFunction } from './types'
 
-export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunctionOptions<P>): CursiveFunction {
-    const zodSchema = z.object({ ...options.parameters }).describe(options.description)
-    const { type, properties, required, description } = zodToJsonSchema(zodSchema) as JsonSchema7ObjectType & { description: string }
+export function createFunction<P extends TProperties>(options: CursiveCreateFunctionOptions<P>): CursiveFunction {
+    const parameters = Type.Object(options.parameters ?? {})
+    const { description, name } = options
 
     const resolvedSchema = {
         parameters: {
-            type,
-            properties,
-            required,
+            properties: deepRemoveNonStringKeys(parameters.properties),
+            required: parameters.required,
+            type: 'object' as const,
         },
         description,
-        name: options.name,
+        name,
     }
 
     return {
@@ -23,4 +20,17 @@ export function createFunction<P extends ZodRawShape>(options: CursiveCreateFunc
         definition: options.execute,
         pause: options.pause,
     }
+}
+
+function deepRemoveNonStringKeys(obj: any) {
+    const newObj: any = {}
+    for (const key in obj) {
+        if (typeof obj[key] === 'string')
+            newObj[key] = obj[key]
+        else if (Array.isArray(obj[key]))
+            newObj[key] = obj[key]
+        else if (typeof obj[key] === 'object')
+            newObj[key] = deepRemoveNonStringKeys(obj[key])
+    }
+    return newObj
 }
