@@ -1,21 +1,21 @@
-import type { ZodRawShape } from 'zod'
+import type { TProperties, TSchema } from '@sinclair/typebox'
 import type { ChatCompletionRequestMessage } from 'openai-edge-fns'
 import type { CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
-import type { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef'
+import { Type as TypeBox } from '@sinclair/typebox'
 import type { HookResult, ObjectWithNullValues, Override } from './util'
 import type { CursiveAnswer } from './cursive'
 
 export type CursiveAvailableModels =
 /* OpenAI        */ 'gpt-3.5-turbo' | 'gpt-4'
 /* Anthropic     */ | 'claude-instant-1' | 'claude-2'
-// eslint-disable-next-line @typescript-eslint/ban-types
+
 /* Allow any     */ | (string & {})
 
-export type InferredFunctionParameters<T extends ZodRawShape> = {
-    [K in keyof T]: T[K]['_type']
+export type InferredFunctionParameters<T extends TProperties> = {
+    [K in keyof T]: T[K]['static']
 }
 
-export interface CursiveCreateFunctionOptions<P extends ZodRawShape> {
+export interface CursiveCreateFunctionOptions<P extends TProperties> {
     name: string
     description: string
     parameters?: P
@@ -27,7 +27,7 @@ export interface CursiveFunction {
     schema: {
         parameters: {
             type: 'object'
-            properties: Record<string, JsonSchema7Type>
+            properties: any
             required: string[]
         }
         description: string
@@ -162,3 +162,34 @@ export interface CursiveHooks {
 }
 
 export type CursiveHook = keyof CursiveHooks
+
+const Nullable = <T extends TSchema>(schema: T) => TypeBox.Union([schema, TypeBox.Null()])
+function StringEnum<T extends string[]>(values: [...T], options?: { description?: string }) {
+    return TypeBox.Unsafe<T[number]>({
+        type: 'string',
+        enum: values,
+        ...options,
+    })
+}
+
+// @ts-expect-error Overriding method
+TypeBox.StringEnum = StringEnum
+// @ts-expect-error Overriding method
+TypeBox.Nullable = Nullable
+
+export const Type = TypeBox as any as typeof TypeBox & {
+    Nullable: typeof Nullable
+    StringEnum: typeof StringEnum
+}
+
+// class CursiveTypeBuilder extends TypeBuilder {
+//     // public StringEnum<T extends string[]>(values: [...T]): TUnion<IntoStringLiteralUnion<T>> {
+//     //     return { enum: values } as any
+//     // }
+
+//     // public Nullable<T extends TSchema>(schema: T): TUnion<[T, TNull]> {
+//     //     return { ...schema, nullable: true } as any
+//     // }
+// }
+
+// export const Type = new CursiveTypeBuilder()
