@@ -5,7 +5,7 @@ Cursive is a universal and intuitive framework for interacting with LLMs.
 
 It works in any JavaScript runtime and has a heavy focus on extensibility and developer experience.
 
-## highlights
+## ■ Highlights
 <img width=14 height=0 src=""/>✦ **Compatible** - Cursive works in any runtime, including the browser, Node.js, Deno, Bun and Cloudflare Workers. Through [WindowAI](https://windowai.io), users can securely bring their own credentials, provider, and model to completions.
 
 <img width=14 height=0 src=""/>✦ **Extensible** - You can easily hook into any part of a completion life cycle. Be it to log, cache, or modify the results.
@@ -18,17 +18,17 @@ It works in any JavaScript runtime and has a heavy focus on extensibility and de
 
 <img width=14 height=0 src=""/>✦ **Reliable** - Cursive comes with automatic retry and model expanding upon exceeding context length. Which you can always configure.
 
-## quickstart
+## ■ Quickstart
 1. Install.
 
     ```bash
-    npm i cursive-gpt
+    npm i cursive
     ```
 
 2. Start using.
 
     ```ts
-    import { useCursive } from 'cursive-gpt'
+    import { useCursive } from 'cursive'
 
     const cursive = useCursive({
         openAI: {
@@ -41,7 +41,7 @@ It works in any JavaScript runtime and has a heavy focus on extensibility and de
     })
     ```
 
-## usage
+## ■ Usage
 ### Conversation
 Chaining a conversation is easy with `cursive`. You can pass any of the options you're used to with OpenAI's API.
 
@@ -78,7 +78,7 @@ console.log(result.usage.totalTokens) // 40
 You can use `Type` to define and describe functions, along side with their execution code.
 This is powered by the [**`typebox`**](https://github.com/sinclairzx81/typebox) library.
 ```ts
-import { Type, createFunction, useCursive } from 'cursive-gpt'
+import { Type, createFunction, useCursive } from 'cursive'
 
 const cursive = useCursive({
     openAI: {
@@ -181,16 +181,21 @@ const cursive = useCursive({
 })
 ```
 
-## examples
+## ■ Examples
 
 -  <img src="https://seeklogo.com/images/N/nuxt-logo-64E0472AA8-seeklogo.com.png" width=16/> **[Nuxt ⇢ Simple Application](https://github.com/meistrari/cursive/blob/main/examples/nuxt)**
 -  <img src="https://seeklogo.com/images/C/cloudflare-workers-logo-9BF89B51E2-seeklogo.com.png" width=16/> **[Cloudflare Workers ⇢ Simple Edge API](https://github.com/meistrari/cursive/blob/main/examples/cf-workers)**
 
-## roadmap
+## ■ Roadmap
 
-### vendor support
+### Vendor support
 - [x] Anthropic
 - [ ] Cohere (works on browser through WindowAI)
 - [ ] Azure OpenAI models
 - [ ] Huggingface (works on browser through WindowAI)
 - [ ] Replicate (works on browser through WindowAI)
+
+
+## ■ Credits
+
+Thanks to [**@disjukr**](https://github.com/disjukr) for transferring the `cursive` npm package name to us!
