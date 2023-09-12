@@ -86,7 +86,7 @@ export async function processAnthropicStream(context: {
         choices: [{ message: { content: '' } }],
         usage: {
             completion_tokens: 0,
-            prompt_tokens: getAnthropicUsage(context.payload.messages),
+            prompt_tokens: await getAnthropicUsage(context.payload.messages),
         },
         model: context.payload.model,
     }

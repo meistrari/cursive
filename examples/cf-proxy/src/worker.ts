@@ -7,7 +7,11 @@ export interface Env {
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const proxy = createCursiveProxy({ openAI: { apiKey: env.OPENAI_API_KEY }, stream: { encodeValues: true } })
+        const proxy = createCursiveProxy({ openAI: { apiKey: env.OPENAI_API_KEY }, stream: { encodeValues: true }, countUsage: true })
+
+				proxy.on('query:after', (query) => {
+					console.log(query?.cost)
+				})
 
         const body = await resguard<any>(request.json())
 
@@ -17,7 +21,7 @@ export default {
             }))
         }
 
-        const response = await proxy(body.data)
+        const response = await proxy.handle(body.data)
 
         if (body.data.stream) {
             const init = {

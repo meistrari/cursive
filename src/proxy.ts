@@ -1,6 +1,6 @@
 import type { CreateChatCompletionRequest, CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
 import { TransformStream } from '@web-std/stream'
-import type { CursiveAskOptionsWithMessages, CursiveSetupOptions, CursiveStreamDelta } from './types'
+import type { CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
 import { useCursive } from './cursive'
 import { randomId } from './util'
 
@@ -11,16 +11,23 @@ interface CursiveProxyOptions {
 }
 
 export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOptions) {
-    const proxy: CursiveProxy = async (request) => {
-        const cursive = useCursive(options)
+    const cursive = useCursive(options)
 
+    const handle: CursiveProxy = async (request) => {
         if (!request.stream)
             return await handleRequest(request, cursive)
         else
             return await handleStreamRequest(request, cursive, options.stream)
     }
 
-    return proxy
+    function on<H extends CursiveHook>(event: H, callback: CursiveHooks[H]) {
+        return cursive.on(event, callback)
+    }
+
+    return {
+        handle,
+        on,
+    }
 }
 
 async function handleRequest(request: CreateChatCompletionRequest, cursive: ReturnType<typeof useCursive>) {
