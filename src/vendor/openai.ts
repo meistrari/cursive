@@ -51,7 +51,7 @@ export async function processOpenAIStream(context: {
         choices: [],
         usage: {
             completion_tokens: 0,
-            prompt_tokens: getOpenAIUsage(context.payload.messages),
+            prompt_tokens: await getOpenAIUsage(context.payload.messages),
         },
         model: context.payload.model,
     }
