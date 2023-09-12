@@ -24,17 +24,19 @@ export interface CursiveCreateFunctionOptions<P extends TProperties> {
 }
 
 export interface CursiveFunction {
-    schema: {
-        parameters: {
-            type: 'object'
-            properties: any
-            required: string[]
-        }
-        description: string
-        name: string
-    }
+    schema: CursiveFunctionSchema
     definition: (parameters: Record<string, any>) => Promise<any>
     pause?: boolean
+}
+
+export interface CursiveFunctionSchema {
+    parameters: {
+        type: 'object'
+        properties: any
+        required: string[]
+    }
+    description: string
+    name: string
 }
 
 export interface CursiveSetupOptions {
@@ -70,23 +72,34 @@ export enum CursiveErrorCode {
     UnknownError = 'unknown_error',
 }
 export class CursiveError extends Error {
-    constructor(message: string, public details?: any, public code?: CursiveErrorCode) {
+    constructor(public message: string, public details?: any, public code?: CursiveErrorCode, stack?: any) {
         super(message)
         this.name = 'CursiveError'
         this.message = message
         this.details = details
         this.code = code
+        this.stack = stack
     }
 }
 
-export type CursiveAskOnToken = (delta:
-{ functionCall: { name: string; arguments: '' } | { name: null; arguments: string }; content: null }
-| { content: string; functionCall: null }
-) => void | Promise<void>
+export type CursiveStreamDelta = {
+    functionCall: { name: string; arguments: '' } | { name: null; arguments: string }
+    content: null
+    index?: number
+    finishReason?: string
+}
+| {
+    content: string
+    functionCall: null
+    index?: number
+    finishReason?: string
+}
+export type CursiveAskOnToken = (delta: CursiveStreamDelta) => void | Promise<void>
+
 interface CursiveAskOptionsBase {
     model?: CursiveAvailableModels
     systemMessage?: string
-    functions?: CursiveFunction[]
+    functions?: CursiveFunction[] | CursiveFunctionSchema[]
     functionCall?: string | CursiveFunction
     onToken?: CursiveAskOnToken
     maxTokens?: number
@@ -181,15 +194,3 @@ export const Type = TypeBox as any as typeof TypeBox & {
     Nullable: typeof Nullable
     StringEnum: typeof StringEnum
 }
-
-// class CursiveTypeBuilder extends TypeBuilder {
-//     // public StringEnum<T extends string[]>(values: [...T]): TUnion<IntoStringLiteralUnion<T>> {
-//     //     return { enum: values } as any
-//     // }
-
-//     // public Nullable<T extends TSchema>(schema: T): TUnion<[T, TNull]> {
-//     //     return { ...schema, nullable: true } as any
-//     // }
-// }
-
-// export const Type = new CursiveTypeBuilder()

@@ -3,7 +3,7 @@ import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
 import { type ChatMessage, type CompletionOptions, type MessageOutput } from 'window.ai'
-import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAskOptions, CursiveAskOptionsWithPrompt, CursiveAskUsage, CursiveHook, CursiveHooks, CursiveSetupOptions } from './types'
+import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAskOptions, CursiveAskOptionsWithPrompt, CursiveAskUsage, CursiveFunction, CursiveFunctionSchema, CursiveHook, CursiveHooks, CursiveSetupOptions } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
 import type { IfNull } from './util'
 import { randomId, sleep, toSnake } from './util'
@@ -233,7 +233,7 @@ export function useCursive(options: CursiveSetupOptions) {
 
 function resolveOptions(options: CursiveAskOptions) {
     const {
-        functions = [],
+        functions: functionsRaw = [],
         messages = [],
         model = 'gpt-3.5-turbo-0613',
         systemMessage,
@@ -246,6 +246,8 @@ function resolveOptions(options: CursiveAskOptions) {
     // TODO: Add support for function call resolving
     const vendor = resolveVendorFromModel(model)
     let resolvedSystemMessage = systemMessage || ''
+
+    const functions = resolveFunctionList(functionsRaw)
 
     if (vendor === 'anthropic' && functions.length > 0)
         resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions)}`
@@ -375,14 +377,16 @@ async function createCompletion(context: {
             }
             else {
                 const responseData = await response.json()
+
+                if (responseData.error)
+                    throw new CursiveError(responseData.error.message, responseData.error, CursiveErrorCode.CompletionError)
+
                 data = {
                     choices: [{ message: { content: responseData.completion.trimStart() } }],
                     model: payload.model,
                     id: randomId(),
                     usage: {} as any,
                 } as any
-                if (responseData.error)
-                    throw new CursiveError(responseData.error.message, responseData.error, CursiveErrorCode.CompletionError)
             }
 
             // We check for function call in the completion
@@ -391,7 +395,6 @@ async function createCompletion(context: {
 
             if (functionCallMatches) {
                 const functionCall = JSON.parse(functionCallMatches[1].trim())
-                console.log(functionCall)
                 data.choices[0].message.function_call = {
                     name: functionCall.name,
                     arguments: JSON.stringify(functionCall.arguments),
@@ -456,7 +459,7 @@ async function askModel(
     await cursive._hooks.callHook('query:before', options)
 
     const { payload, resolvedOptions } = resolveOptions(options)
-    const functions = options.functions || []
+    const functions = resolveFunctionList(options.functions || [])
 
     if (typeof options.functionCall !== 'string' && options.functionCall?.schema)
         functions.push(options.functionCall)
@@ -475,7 +478,7 @@ async function askModel(
 
     if (completion.error) {
         if (!completion.error?.details)
-            throw new CursiveError(`Unknown error: ${completion.error.message}`, completion.error, CursiveErrorCode.UnknownError)
+            throw new CursiveError(`Unknown error: ${completion.error.message}`, completion.error, CursiveErrorCode.UnknownError, completion.error.stack)
 
         const cause = completion.error.details.code || completion.error.details.type
         if (cause === 'context_length_exceeded') {
@@ -636,6 +639,23 @@ async function buildAnswer(
 
         return newMessage
     }
+}
+
+function resolveFunctionList(functions: (CursiveFunction | CursiveFunctionSchema)[]) {
+    return functions.map((functionDefinition) => {
+        if ('schema' in functionDefinition) {
+            return functionDefinition
+        }
+        else if ('name' in functionDefinition) {
+            const fn: CursiveFunction = {
+                schema: functionDefinition,
+                pause: true,
+                definition: null,
+            }
+            return fn
+        }
+        return null
+    }).filter(Boolean)
 }
 
 interface CursiveEnrichedAnswer {
