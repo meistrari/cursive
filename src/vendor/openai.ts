@@ -55,7 +55,6 @@ export async function processOpenAIStream(context: {
         },
         model: context.payload.model,
     }
-    console.log(data)
 
     if (context.payload.functions)
         data.usage.prompt_tokens += getTokenCountFromFunctions(context.payload.functions)
@@ -70,11 +69,11 @@ export async function processOpenAIStream(context: {
             id: value.id,
         }
 
-        value.choices.forEach((choice: any, i: number) => {
-            const { delta } = choice
+        value.choices.forEach((choice: any) => {
+            const { delta, index } = choice
 
-            if (!data.choices[i]) {
-                data.choices[i] = {
+            if (!data.choices[index]) {
+                data.choices[index] = {
                     message: {
                         function_call: null,
                         role: 'assistant',
@@ -84,19 +83,25 @@ export async function processOpenAIStream(context: {
             }
 
             if (delta?.function_call?.name)
-                data.choices[i].message.function_call = delta.function_call
+                data.choices[index].message.function_call = delta.function_call
 
             if (delta?.function_call?.arguments)
-                data.choices[i].message.function_call.arguments += delta.function_call.arguments
+                data.choices[index].message.function_call.arguments += delta.function_call.arguments
 
             if (delta?.content)
-                data.choices[i].message.content += delta.content
+                data.choices[index].message.content += delta.content
 
             if (context.onToken) {
                 let chunk: Record<string, any> | null = null
                 if (delta?.function_call) {
                     chunk = {
                         functionCall: delta.function_call,
+                    }
+                }
+
+                if (delta?.finish_reason) {
+                    chunk = {
+                        finishReason: delta.finish_reason,
                     }
                 }
 
@@ -107,7 +112,7 @@ export async function processOpenAIStream(context: {
                 }
 
                 if (chunk)
-                    context.onToken(chunk as any)
+                    context.onToken({ ...chunk, index } as any)
             }
         })
     }
