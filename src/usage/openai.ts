@@ -1,10 +1,10 @@
 import type { ChatCompletionFunctions, ChatCompletionRequestMessage } from 'openai-edge'
 
 export async function getOpenAIUsage(contentOrMessageList: string | ChatCompletionRequestMessage[]) {
-    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/cl100k_base')
+    const { OpenAIEncoder } = await import('unitoken')
 
     if (typeof contentOrMessageList === 'string')
-        return encode(contentOrMessageList).length
+        return OpenAIEncoder.encode(contentOrMessageList).length
 
     const tokens = {
         perMessage: 0,
@@ -27,7 +27,7 @@ export async function getOpenAIUsage(contentOrMessageList: string | ChatCompleti
 
             if (value === null || value === undefined)
                 continue
-            tokenCount += encode(value).length
+            tokenCount += OpenAIEncoder.encode(value).length
         }
     }
 
@@ -35,28 +35,28 @@ export async function getOpenAIUsage(contentOrMessageList: string | ChatCompleti
 }
 
 export async function getTokenCountFromFunctions(functions: ChatCompletionFunctions[]) {
-    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/cl100k_base')
+    const { OpenAIEncoder} = await import('unitoken')
 
     let tokenCount = 3
     for (const fn of functions) {
-        let functionTokens = encode(fn.name).length
-        functionTokens += encode(fn.description).length
+        let functionTokens = OpenAIEncoder.encode(fn.name).length
+        functionTokens += OpenAIEncoder.encode(fn.description).length
 
         if (fn.parameters?.properties) {
             const properties = fn.parameters.properties
             for (const key in properties) {
-                functionTokens += encode(key).length
+                functionTokens += OpenAIEncoder.encode(key).length
                 const value = properties[key]
                 for (const field in value) {
                     if (['type', 'description'].includes(field)) {
                         functionTokens += 2
-                        functionTokens += encode(value[field]).length
+                        functionTokens += OpenAIEncoder.encode(value[field]).length
                     }
                     else if (field === 'enum') {
                         functionTokens -= 3
                         for (const enumValue in value[field]) {
                             functionTokens += 3
-                            functionTokens += encode(enumValue).length
+                            functionTokens += OpenAIEncoder.encode(enumValue).length
                         }
                     }
                 }

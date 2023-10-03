@@ -1,10 +1,10 @@
 import type { ChatCompletionRequestMessage } from 'openai-edge'
 
 export async function getAnthropicUsage(content: string | ChatCompletionRequestMessage[]) {
-    const { encode } = await import('@meistrari/gpt-tokenizer/esm/encoding/claude')
+    const { AnthropicEncoder } = await import('unitoken')
 
     if (typeof content === 'string')
-        return encode(content).length
+        return AnthropicEncoder.encode(content).length
 
     const mappedContent = content.map((message) => {
         const { content, role } = message
@@ -18,5 +18,5 @@ export async function getAnthropicUsage(content: string | ChatCompletionRequestM
         return `${role}: ${content}`
     }).join('\n\n')
 
-    return encode(mappedContent).length
+    return AnthropicEncoder.encode(mappedContent).length
 }

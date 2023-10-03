@@ -32,8 +32,8 @@ export class Cursive {
     }) {
         this._hooks = createHooks<CursiveHooks>()
         this._vendor = {
-            openai: createOpenAIClient({ apiKey: options?.openAI?.apiKey }),
-            anthropic: createAnthropicClient({ apiKey: options?.anthropic?.apiKey }),
+            openai: createOpenAIClient({ apiKey: options?.openAI?.apiKey || ('process' in globalThis && process.env.OPENAI_API_KEY) }),
+            anthropic: createAnthropicClient({ apiKey: options?.anthropic?.apiKey || ('process' in globalThis && process.env.ANTHROPIC_API_KEY) }),
         }
         this.options = options
 
@@ -414,7 +414,7 @@ async function createCompletion(context: {
             }
         }
     }
-    if (context.cursive.options.countUsage) {
+    if (context.cursive.options.countUsage && data.usage) {
         if (vendor === 'openai') {
             data.cost = resolveOpenAIPricing({
                 completionTokens: data.usage.completion_tokens,

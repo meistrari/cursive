@@ -4,10 +4,11 @@
     "moduleResolution": "node",
     "target": "ESNext",
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["bun-types"]
   },
   "exclude": [
     "examples",
     "dist"
-  ]
+  ],
 }

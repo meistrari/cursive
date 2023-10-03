@@ -1,5 +1,5 @@
 import type { TProperties, TSchema } from '@sinclair/typebox'
-import type { ChatCompletionRequestMessage } from 'openai-edge-fns'
+import type { ChatCompletionRequestMessage } from 'openai-edge'
 import type { CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
 import { Type as TypeBox } from '@sinclair/typebox'
 import type { HookResult, ObjectWithNullValues, Override } from './util'

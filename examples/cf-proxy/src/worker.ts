@@ -3,21 +3,27 @@ import { createCursiveProxy } from '../../../src/index'
 
 export interface Env {
     OPENAI_API_KEY: string
+    ANTHROPIC_API_KEY: string
 }
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const proxy = createCursiveProxy({ openAI: { apiKey: env.OPENAI_API_KEY }, stream: { encodeValues: true }, countUsage: true })
+        const proxy = createCursiveProxy({ 
+            openAI: { apiKey: env.OPENAI_API_KEY }, 
+            anthropic: { apiKey: env.ANTHROPIC_API_KEY },
+            stream: { encodeValues: true }, 
+            countUsage: true 
+        })
 
-				proxy.on('query:after', (query) => {
-					console.log(query?.cost)
-				})
+        proxy.on('query:after', (query) => {
+            console.log(query?.cost)
+        })
 
         const body = await resguard<any>(request.json())
 
         if(body.error) {
             return new Response(JSON.stringify({
-                error: true
+                error: true,
             }))
         }
 
