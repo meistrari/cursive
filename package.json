@@ -1,7 +1,7 @@
 {
   "name": "cursive",
   "type": "module",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "packageManager": "pnpm@8.6.0",
   "description": "",
   "author": "Henrique Cunha <henrycunh@gmail.com>",
@@ -50,7 +50,6 @@
     "haxx": "^0.7.0",
     "lint-staged": "^13.2.2",
     "node-fetch": "^3.3.1",
-    "pnpm": "^8.6.0",
     "rimraf": "^5.0.1",
     "simple-git-hooks": "^2.8.1",
     "typescript": "^5.0.4",
@@ -66,19 +65,16 @@
     "*": "eslint --fix"
   },
   "dependencies": {
-    "@meistrari/gpt-tokenizer": "0.3.2",
+    "@sinclair/typebox": "^0.31.10",
     "@web-std/stream": "^1.0.1",
     "eventsource-parser": "^1.0.0",
-    "gpt-tokenizer": "^2.1.1",
     "hookable": "^5.5.3",
     "hotscript": "^1.0.13",
     "isomorphic-streams": "^1.0.3",
     "ofetch": "^1.1.1",
-    "@sinclair/typebox": "^0.31.10",
     "openai-edge": "^1.1.0",
-    "openai-edge-fns": "^1.1.0",
     "resguard": "^1.4.3",
     "unenv": "^1.5.1",
-    "whatwg-streams": "^0.1.1"
+    "unitoken": "^0.0.1"
   }
 }
