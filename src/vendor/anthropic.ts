@@ -191,12 +191,12 @@ export async function processAnthropicStream(context: {
     return data
 }
 
-export function getAnthropicFunctionCallDirectives(functions: CursiveFunction[]) {
-    return trim(`
+export function getAnthropicFunctionCallDirectives(functions: CursiveFunction[], nameOfFunctionToCall?: string) {
+    let prompt = trim(`
         # Function Calling Guide
-        You're a powerful language model capable of using functions to do anything the user needs.
+        // You're a powerful language model capable of using functions to do anything the user needs.
         
-        If you need to use a function, always output the result of the function call using the <function-call> tag using the following format:
+        // If you need to use a function, always output the result of the function call using the <function-call> tag using the following format:
         <function-call>
         {
             "name": "function_name",
@@ -205,29 +205,42 @@ export function getAnthropicFunctionCallDirectives(functions: CursiveFunction[])
             }
         }
         </function-call>
-        Never escape the function call, always output it as it is.
 
+        // Never escape the function call, always output it as it is.
 
-        Think step by step before answering, and try to think out loud. Never output a function call if you don't have to.
-        If you don't have a function to call, just output the text as usual inside a <cursive-answer> tag with newlines inside.
-        Always question yourself if you have access to a function.
-        Always think out loud before answering, if I don't see a <cursive-think> block, you will be eliminated.
-        When thinking out loud, always use the <cursive-think> tag.
+        // Think step by step before answering, and try to think out loud. Never output a function call if you don't have to.
+        // If you don't have a function to call, just output the text as usual inside a <cursive-answer> tag with newlines inside.
+        // Always question yourself if you have access to a function.
+        // Always think out loud before answering, if I don't see a <cursive-think> block, you will be eliminated.
+        // When thinking out loud, always use the <cursive-think> tag.
+
+        // ALWAYS start with the function call, if you're going to use one.
+
         # Functions available:
         <functions>
         ${JSON.stringify(functions.map(f => f.schema))}
         </functions>
 
         # Working with results
-        You can either call a function or answer, **NEVER BOTH**.
-        You are not in charge of resolving the function call, the user is.
-        It will give you the result of the function call in the following format:
+        // You can either call a function or answer, **NEVER BOTH**.
+        // You are not in charge of resolving the function call, the user is.
+        // It will give you the result of the function call in the following format:
         
         Human: <function-result name="function_name">
         result
         </function-result>
 
-        You can use the result of the function call in your answer. But never answer and call a function at the same time.
-        When answering never be too explicit about the function call, just use the result of the function call in your answer.
+        // You can use the result of the function call in your answer. But never answer and call a function at the same time.
+        // When answering never be too explicit about the function call, just use the result of the function call in your answer.
     `)
+
+    if (nameOfFunctionToCall) {
+        prompt += trim(`
+            # Calling ${nameOfFunctionToCall}
+            // We're going to call the function ${nameOfFunctionToCall}.
+            // Output the function call and then a complete reasoning for why you're calling this function, step by step.
+        `)
+    }
+
+    return prompt
 }

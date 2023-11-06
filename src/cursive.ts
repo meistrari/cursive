@@ -1,8 +1,9 @@
+import type { ChatMessage, CompletionOptions, MessageOutput, WindowAI } from 'window.ai'
+
 import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
 import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
-import { type ChatMessage, type CompletionOptions, type MessageOutput } from 'window.ai'
 import type { CursiveAnswerResult, CursiveAskCost, CursiveAskOnToken, CursiveAskOptions, CursiveAskOptionsWithPrompt, CursiveAskUsage, CursiveFunction, CursiveFunctionSchema, CursiveHook, CursiveHooks, CursiveSetupOptions } from './types'
 import { CursiveError, CursiveErrorCode } from './types'
 import type { IfNull } from './util'
@@ -13,6 +14,12 @@ import { resolveVendorFromModel } from './vendor'
 import { createAnthropicClient, getAnthropicFunctionCallDirectives, processAnthropicStream } from './vendor/anthropic'
 import { getOpenAIUsage } from './usage/openai'
 import { getAnthropicUsage } from './usage/anthropic'
+import { schemaToFunction } from './schema'
+import { TSchema } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
+
+
+declare let window: { ai: WindowAI }
 
 export class Cursive {
     public _hooks: Hookable<CursiveHooks>
@@ -83,9 +90,11 @@ export class Cursive {
         this._hooks.hook(event, callback as any)
     }
 
-    async ask(
-        options: CursiveAskOptions,
-    ): Promise<CursiveAnswerResult> {
+    async ask<T extends TSchema | undefined = undefined>(
+        options: CursiveAskOptions<T>,
+    ): Promise<CursiveAnswerResult<
+        T extends TSchema ? T['static'] : string
+    >> {
         await this._readyCheck()
         const result = await buildAnswer(options, this)
         if (result.error) {
@@ -100,7 +109,7 @@ export class Cursive {
             { role: 'assistant', content: result.answer } as const,
         ]
 
-        return new CursiveAnswer<null>({
+        return new CursiveAnswer<null, T extends TSchema ? T : string>({
             result,
             error: null,
             messages: newMessages,
@@ -144,7 +153,7 @@ export class CursiveConversation {
         this.messages = messages
     }
 
-    async ask(options: CursiveAskOptionsWithPrompt): Promise<CursiveAnswerResult> {
+    async ask<Schema extends string | object | unknown = string>(options: CursiveAskOptionsWithPrompt): Promise<CursiveAnswerResult<Schema>> {
         const { prompt, ...rest } = options
         const resolvedOptions = {
             ...(rest as any),
@@ -168,7 +177,7 @@ export class CursiveConversation {
             { role: 'assistant', content: result.answer } as const,
         ]
 
-        return new CursiveAnswer<null>({
+        return new CursiveAnswer<null, Schema>({
             result,
             error: null,
             messages: newMessages,
@@ -177,7 +186,7 @@ export class CursiveConversation {
     }
 }
 
-export class CursiveAnswer<E extends null | CursiveError> {
+export class CursiveAnswer<E extends null | CursiveError, Schema extends string | object | unknown = string> {
     public choices: IfNull<E, string[]>
     public id: IfNull<E, string>
     public model: IfNull<E, string>
@@ -188,7 +197,7 @@ export class CursiveAnswer<E extends null | CursiveError> {
     /**
      * The text from the answer of the last choice
      */
-    public answer: IfNull<E, string>
+    public answer: IfNull<E, Schema>
     /**
      * A conversation instance with all the messages so far, including this one
      */
@@ -227,7 +236,7 @@ export class CursiveAnswer<E extends null | CursiveError> {
     }
 }
 
-export function useCursive(options: CursiveSetupOptions) {
+export function useCursive(options: CursiveSetupOptions = {}) {
     return new Cursive(options)
 }
 
@@ -238,6 +247,7 @@ function resolveOptions(options: CursiveAskOptions) {
         model = 'gpt-3.5-turbo-0613',
         systemMessage,
         prompt,
+        schema,
         functionCall,
         abortSignal: __,
         ...rest
@@ -247,10 +257,21 @@ function resolveOptions(options: CursiveAskOptions) {
     const vendor = resolveVendorFromModel(model)
     let resolvedSystemMessage = systemMessage || ''
 
+    if (schema) {
+        const resolvedSchemaFunction = schemaToFunction(schema)
+
+        functionsRaw.push({
+            definition: async (args) => args,
+            pause: true,
+            schema: resolvedSchemaFunction,
+        } as any)
+    }
+    
     const functions = resolveFunctionList(functionsRaw)
+    const resolvedFunctionCall = resolveFunctionCall(functionCall, schemaToFunction(schema))
 
     if (vendor === 'anthropic' && functions.length > 0)
-        resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions)}`
+        resolvedSystemMessage = `${systemMessage || ''}\n\n${getAnthropicFunctionCallDirectives(functions,)}`
 
     const hasSystemMessage = messages.some(message => message.role === 'system')
 
@@ -264,11 +285,6 @@ function resolveOptions(options: CursiveAskOptions) {
         prompt && { role: 'user', content: prompt },
     ].filter(Boolean) as ChatCompletionRequestMessage[]
 
-    const resolvedFunctionCall = functionCall
-        ? typeof functionCall === 'string'
-            ? functionCall
-            : { name: functionCall.schema.name }
-        : undefined
 
     const payload: CreateChatCompletionRequest = {
         ...toSnake(rest),
@@ -280,10 +296,29 @@ function resolveOptions(options: CursiveAskOptions) {
     const resolvedOptions = {
         ...rest,
         model,
+        schema,
+        functions,
+        functionCall: resolvedFunctionCall,
         messages: queryMessages,
     }
 
     return { payload, resolvedOptions }
+}
+
+function resolveFunctionCall(functionCall: any, schema?: any) {
+    if (schema) {
+        return { name: schema.name }
+    }
+
+    if (functionCall) {
+        if (typeof functionCall === 'string') {
+            return functionCall
+        } else {
+            return { name: functionCall.schema.name }
+        }
+    } else {
+        return undefined
+    }
 }
 
 async function createCompletion(context: {
@@ -449,22 +484,23 @@ async function createCompletion(context: {
     return data as CreateChatCompletionResponse & { cost: CursiveAskCost }
 }
 
-async function askModel(
-    options: CursiveAskOptions,
+async function askModel<T extends TSchema | undefined = undefined>(
+    options: CursiveAskOptions<T>,
     cursive: Cursive,
 ): Promise<{
         answer: CreateChatCompletionResponse & { functionResult?: any; cost: CursiveAskCost }
         messages: ChatCompletionRequestMessage[]
     }> {
-    await cursive._hooks.callHook('query:before', options)
-
-    const { payload, resolvedOptions } = resolveOptions(options)
+    await cursive._hooks.callHook('query:before', options as any)
+    
+    const { payload, resolvedOptions } = resolveOptions(options as any)
     const functions = resolveFunctionList(options.functions || [])
-
+    
+    // Check if the user passed a schema, if so, we add it to the functions list
     if (typeof options.functionCall !== 'string' && options.functionCall?.schema)
-        functions.push(options.functionCall)
+        resolvedOptions.functions.push(options.functionCall)
 
-    const functionSchemas = functions.map(({ schema }) => schema)
+    const functionSchemas = resolvedOptions.functions.map(({ schema }) => schema)
 
     if (functionSchemas.length > 0)
         payload.functions = functionSchemas
@@ -599,11 +635,11 @@ async function askModel(
     }
 }
 
-async function buildAnswer(
-    options: CursiveAskOptions,
+async function buildAnswer<T extends TSchema | undefined = undefined>(
+    options: CursiveAskOptions<T>,
     cursive: Cursive,
 ): Promise<CursiveEnrichedAnswer> {
-    const result = await resguard(askModel(options, cursive), CursiveError)
+    const result = await resguard(askModel<T>(options, cursive), CursiveError)
 
     if (result.error) {
         return {
@@ -625,6 +661,15 @@ async function buildAnswer(
             totalTokens: result.data.answer.usage!.total_tokens,
         }
 
+        let resolvedAnswer = result.data.answer.choices.at(-1).message.content
+
+        if (options.schema) {
+            const output = result.data.answer.functionResult
+            // Validate the output against the schema
+            const isValid = Value.Check(options.schema, output)
+            resolvedAnswer = output    
+        }
+
         const newMessage = {
             error: null,
             model: result.data.answer.model,
@@ -633,7 +678,7 @@ async function buildAnswer(
             cost: result.data.answer.cost,
             choices: result.data.answer.choices.map(choice => choice.message.content),
             functionResult: result.data.answer.functionResult || null,
-            answer: result.data.answer.choices[result.data.answer.choices.length - 1].message.content,
+            answer: resolvedAnswer,
             messages: result.data.messages,
         }
 

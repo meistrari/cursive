@@ -96,7 +96,7 @@ export type CursiveStreamDelta = {
 }
 export type CursiveAskOnToken = (delta: CursiveStreamDelta) => void | Promise<void>
 
-interface CursiveAskOptionsBase {
+interface CursiveAskOptionsBase<T extends TSchema | undefined> {
     model?: CursiveAvailableModels
     systemMessage?: string
     functions?: CursiveFunction[] | CursiveFunctionSchema[]
@@ -113,20 +113,21 @@ interface CursiveAskOptionsBase {
     logitBias?: Record<string, number>
     user?: string
     stream?: boolean
+    schema?: T
     abortSignal?: AbortSignal
 }
 
-export interface CursiveAskOptionsWithMessages extends CursiveAskOptionsBase {
+export interface CursiveAskOptionsWithMessages<T extends TSchema> extends CursiveAskOptionsBase<T> {
     messages: ChatCompletionRequestMessage[]
     prompt?: never
 }
 
-export interface CursiveAskOptionsWithPrompt extends CursiveAskOptionsBase {
+export interface CursiveAskOptionsWithPrompt<T extends TSchema = undefined> extends CursiveAskOptionsBase<T> {
     prompt: string
     messages?: never
 }
 
-export type CursiveAskOptions = CursiveAskOptionsWithMessages | CursiveAskOptionsWithPrompt
+export type CursiveAskOptions<T extends TSchema | undefined = undefined> = CursiveAskOptionsWithMessages<T> | CursiveAskOptionsWithPrompt<T>
 
 export interface CursiveAskUsage {
     completionTokens: number
@@ -141,9 +142,9 @@ export interface CursiveAskCost {
     version: string
 }
 
-export type CursiveAnswerSuccess = CursiveAnswer<null>
+export type CursiveAnswerSuccess<Schema extends string | object | unknown = string> = CursiveAnswer<null, Schema>
 export type CursiveAnswerError = Override<ObjectWithNullValues<CursiveAnswer<CursiveError>>, { error: CursiveError }>
-export type CursiveAnswerResult = CursiveAnswerSuccess | CursiveAnswerError
+export type CursiveAnswerResult<Schema extends string | object | unknown = string> = CursiveAnswerSuccess<Schema> | CursiveAnswerError
 
 export interface CursiveAskErrorResult {
     choices: null
@@ -160,7 +161,7 @@ export interface CursiveAskErrorResult {
 type ChatCompletionWithCost = CreateChatCompletionResponse & { cost: CursiveAskCost }
 
 export interface CursiveHooks {
-    'query:before': (options: CursiveAskOptions) => HookResult
+    'query:before': (options: CursiveAskOptions<undefined>) => HookResult
     'query:after': (result: ChatCompletionWithCost | null, error: CursiveError | null) => HookResult
     'query:error': (error: CursiveError) => HookResult
     'query:success': (result: ChatCompletionWithCost) => HookResult

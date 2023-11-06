@@ -5,7 +5,7 @@
     "target": "ESNext",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["bun-types"]
+    "types": ["bun-types", "./src/global.d.ts"],
   },
   "exclude": [
     "examples",
