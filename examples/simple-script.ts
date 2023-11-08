@@ -1,4 +1,4 @@
-import { useCursive } from '../../src/index'
+import { useCursive } from '../src/index'
 
 const cursive = useCursive({ countUsage: true })
 

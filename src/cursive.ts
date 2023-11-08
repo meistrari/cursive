@@ -539,7 +539,6 @@ async function askModel<T extends TSchema | undefined = undefined>(
         }
 
         // TODO: Handle other errors
-
         if (completion.error) {
             // TODO: Add a more comprehensive retry strategy
             for (let i = 0; i < cursive.options.maxRetries; i++) {
@@ -564,6 +563,29 @@ async function askModel<T extends TSchema | undefined = undefined>(
         await cursive._hooks.callHook('query:error', error)
         await cursive._hooks.callHook('query:after', null, error)
         throw error
+    }
+
+    // Check if any of the choices has a function call and if an schema is passed
+    const hasFunctionCall = completion.data.choices.some(choice => choice.message.function_call)
+    if (hasFunctionCall && resolvedOptions.schema) {
+        completion.data.choices = completion.data.choices.map((choice) => {
+            const args = resguard(() => JSON.parse(choice.message.function_call.arguments || '{}'), SyntaxError)
+            return {
+                ...choice,
+                message: {
+                    content: args.data,
+                    role: 'assistant'
+                }
+            }
+        })
+
+        return {
+            answer: {
+                ...completion.data,
+                functionResult: completion.data.choices.at(-1).message.content,
+            },
+            messages: payload.messages || [],
+        }
     }
 
     if (completion.data?.choices[0].message?.function_call) {
@@ -645,7 +667,7 @@ async function buildAnswer<T extends TSchema | undefined = undefined>(
         return {
             error: result.error,
             usage: null,
-            model: options.model || 'gpt-3.5-turbo',
+            model: options.model || 'gpt-3.5-turbo-16k',
             id: null,
             choices: null,
             functionResult: null,

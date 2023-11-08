@@ -3,6 +3,7 @@ import { TransformStream } from '@web-std/stream'
 import type { CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
 import { useCursive } from './cursive'
 import { randomId } from './util'
+import { TSchema } from '@sinclair/typebox'
 
 interface CursiveProxyOptions {
     stream?: {
@@ -10,7 +11,14 @@ interface CursiveProxyOptions {
     }
 }
 
-export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOptions) {
+export type CursiveProxyRequest = CreateChatCompletionRequest & {
+    schema?: Record<string, any>
+}
+
+type CursiveProxy = <R extends CursiveProxyRequest>(request: R) => Promise<CreateChatCompletionResponse | ReadableStream<any> | ErrorResponse>
+
+
+export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOptions = {}) {
     const cursive = useCursive(options)
 
     const handle: CursiveProxy = async (request) => {
@@ -30,9 +38,9 @@ export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOp
     }
 }
 
-async function handleRequest(request: CreateChatCompletionRequest, cursive: ReturnType<typeof useCursive>) {
+async function handleRequest<T extends TSchema | undefined = undefined>(request: CreateChatCompletionRequest, cursive: ReturnType<typeof useCursive>) {
     const answer = await cursive.ask(
-        request as CursiveAskOptionsWithMessages,
+        request as CursiveAskOptionsWithMessages<T>,
     )
 
     if (answer.error) {
@@ -75,7 +83,7 @@ async function handleRequest(request: CreateChatCompletionRequest, cursive: Retu
 }
 
 // Wraps the request in a async generator function
-async function handleStreamRequest(request: CreateChatCompletionRequest, cursive: ReturnType<typeof useCursive>, options?: CursiveProxyOptions['stream']) {
+async function handleStreamRequest<T extends TSchema | undefined = undefined>(request: CursiveProxyRequest, cursive: ReturnType<typeof useCursive>, options?: CursiveProxyOptions['stream']) {
     async function getAsyncIterator() {
     // Define a queue to store tokens
         const tokens = []
@@ -84,7 +92,7 @@ async function handleStreamRequest(request: CreateChatCompletionRequest, cursive
 
         // Initiate your request and pass the handler
         cursive.ask({
-            ...request as CursiveAskOptionsWithMessages,
+            ...request as CursiveAskOptionsWithMessages<T>,
             onToken: (token) => {
             // If the resolver exists, resolve it with a new promise and reset
                 if (resolver) {
@@ -202,5 +210,3 @@ async function handleStreamRequest(request: CreateChatCompletionRequest, cursive
 
     return stream
 }
-
-type CursiveProxy = (request: CreateChatCompletionRequest) => Promise<CreateChatCompletionResponse | ReadableStream<any> | ErrorResponse>

@@ -66,7 +66,7 @@
     "*": "eslint --fix"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.31.10",
+    "@sinclair/typebox": "^0.31.23",
     "@web-std/stream": "^1.0.1",
     "eventsource-parser": "^1.0.0",
     "hookable": "^5.5.3",
