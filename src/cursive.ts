@@ -688,7 +688,6 @@ async function buildAnswer<T extends TSchema | undefined = undefined>(
         if (options.schema) {
             const output = result.data.answer.functionResult
             // Validate the output against the schema
-            const isValid = Value.Check(options.schema, output)
             resolvedAnswer = output    
         }
 

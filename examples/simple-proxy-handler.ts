@@ -12,7 +12,7 @@ const proxy = createCursiveProxy()
 
 const response = await proxy.handle({
     messages: [{ 'role': 'user', 'content': 'Return a person called John, aged 43.' }],
-    model: 'gpt-3.5-turbo-16k',
+    model: 'gpt-3.5-turbo-16k', 
     schema: person
 })
 
