@@ -18,10 +18,10 @@ const schema = t.Object({
     description: 'A person object'
 })
 
-const { answer, choices } = await cursive.ask({ 
+const { answer } = await cursive.ask({ 
     schema,
-    model: 'gpt-4',
-    prompt: 'Create a random female person with two pets, one of which is a cat named "Mittens" and the other is a dog named "Spot".',
+    model: 'claude-2',
+    prompt: 'Create a person named John with 2 pets named Fluffy and Fido',
 })
 
 console.log(answer)

@@ -193,10 +193,15 @@ export async function processAnthropicStream(context: {
 
 export function getAnthropicFunctionCallDirectives(functions: CursiveFunction[], nameOfFunctionToCall?: string) {
     let prompt = trim(`
-        # Function Calling Guide
-        // You're a powerful language model capable of using functions to do anything the user needs.
+        # Functions available
+        <functions>
+        ${JSON.stringify(functions.map(f => f.schema))}
+        </functions>
+
+        # Using functions
+        // I'm a system capable of using functions to accomplish tasks asked by the user.
         
-        // If you need to use a function, always output the result of the function call using the <function-call> tag using the following format:
+        // If I need to use a function, I always output the result of the function call using the <function-call> tag using the following format:
         <function-call>
         {
             "name": "function_name",
@@ -208,18 +213,14 @@ export function getAnthropicFunctionCallDirectives(functions: CursiveFunction[],
 
         // Never escape the function call, always output it as it is.
 
-        // Think step by step before answering, and try to think out loud. Never output a function call if you don't have to.
+        // I think step by step before answering, and try to think out loud. I *NEVER* output a function call if you don't have to.
         // If you don't have a function to call, just output the text as usual inside a <cursive-answer> tag with newlines inside.
-        // Always question yourself if you have access to a function.
-        // Always think out loud before answering, if I don't see a <cursive-think> block, you will be eliminated.
+        // I always question myself if you have access to a function.
+        // Always think out loud before answering, if I don't see a <cursive-think> block, I will be eliminated.
         // When thinking out loud, always use the <cursive-think> tag.
 
+        // ALWAYS respect the JSON Schema of the function, if I don't, I will be eliminated.
         // ALWAYS start with the function call, if you're going to use one.
-
-        # Functions available:
-        <functions>
-        ${JSON.stringify(functions.map(f => f.schema))}
-        </functions>
 
         # Working with results
         // You can either call a function or answer, **NEVER BOTH**.
