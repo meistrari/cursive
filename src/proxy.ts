@@ -1,9 +1,9 @@
-import type { CreateChatCompletionRequest, CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
+import type { CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
 import { TransformStream } from '@web-std/stream'
-import type { CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
+import type { TSchema } from '@sinclair/typebox'
+import type { CursiveAskOptions, CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
 import { useCursive } from './cursive'
 import { randomId } from './util'
-import { TSchema } from '@sinclair/typebox'
 
 interface CursiveProxyOptions {
     stream?: {
@@ -11,12 +11,11 @@ interface CursiveProxyOptions {
     }
 }
 
-export type CursiveProxyRequest = CreateChatCompletionRequest & {
+export type CursiveProxyRequest = CursiveAskOptions & {
     schema?: Record<string, any>
 }
 
 type CursiveProxy = <R extends CursiveProxyRequest>(request: R) => Promise<CreateChatCompletionResponse | ReadableStream<any> | ErrorResponse>
-
 
 export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOptions = {}) {
     const cursive = useCursive(options)
@@ -38,9 +37,9 @@ export function createCursiveProxy(options: CursiveSetupOptions & CursiveProxyOp
     }
 }
 
-async function handleRequest<T extends TSchema | undefined = undefined>(request: CreateChatCompletionRequest, cursive: ReturnType<typeof useCursive>) {
+async function handleRequest<T extends TSchema | undefined = undefined>(request: CursiveAskOptions<T>, cursive: ReturnType<typeof useCursive>) {
     const answer = await cursive.ask(
-        request as CursiveAskOptionsWithMessages<T>,
+        request,
     )
 
     if (answer.error) {
