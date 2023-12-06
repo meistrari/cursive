@@ -13,7 +13,7 @@ interface CursiveProxyOptions {
 }
 
 export type CursiveProxyRequest = CursiveAskOptions & {
-    schema?: Record<string, any>
+    schema?: any
 }
 
 type CursiveProxy = <R extends CursiveProxyRequest>(request: R) => Promise<CreateChatCompletionResponse | ReadableStream<any> | ErrorResponse>

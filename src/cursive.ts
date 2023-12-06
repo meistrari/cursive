@@ -1,6 +1,6 @@
 import type { ChatMessage, CompletionOptions, MessageOutput, WindowAI } from 'window.ai'
 
-import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateChatCompletionResponseChoicesInner } from 'openai-edge'
+import type { ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateChatCompletionResponseChoicesInner } from 'openai-edge'
 import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
@@ -737,7 +737,7 @@ interface CursiveEnrichedAnswer {
     usage: CursiveAskUsage
     model: string
     id: string
-    choices: string[]
+    choices: (string | ChatCompletionRequestMessageFunctionCall)[]
     functionResult: any
     answer: string
     messages: ChatCompletionRequestMessage[]
