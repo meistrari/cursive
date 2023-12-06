@@ -1,9 +1,10 @@
-import type { CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
+import type { ChatCompletionResponseMessageRoleEnum, CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
 import { TransformStream } from '@web-std/stream'
 import type { TSchema } from '@sinclair/typebox'
 import type { CursiveAskOptions, CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
 import { useCursive } from './cursive'
 import { randomId } from './util'
+import { inspect } from 'bun'
 
 interface CursiveProxyOptions {
     stream?: {
@@ -54,15 +55,29 @@ async function handleRequest<T extends TSchema | undefined = undefined>(request:
         }
     }
 
+
     const mappedAnswer: CreateChatCompletionResponse = {
-        choices: answer.choices.map((choice, index) => ({
-            finish_reason: 'stop',
-            index,
-            message: {
-                role: 'assistant',
-                content: choice,
-            },
-        })),
+        choices: answer.choices.map((choice, index) => {
+            const resolvedChoice = {
+                finish_reason: 'stop',
+                index,
+                message: {} as any,
+            }
+
+            if (typeof choice === 'object' && 'name' in choice) {
+                resolvedChoice.message = {
+                    role: 'function',
+                    function_call: choice
+                }
+            } else { 
+                resolvedChoice.message = {
+                    role: 'user',
+                    content: choice
+                }
+            }
+
+            return resolvedChoice
+        }),
         created: Date.now(),
         id: answer.id,
         object: 'chat.completion',

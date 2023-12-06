@@ -1,6 +1,6 @@
 import type { ChatMessage, CompletionOptions, MessageOutput, WindowAI } from 'window.ai'
 
-import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse } from 'openai-edge'
+import type { ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateChatCompletionResponseChoicesInner } from 'openai-edge'
 import { resguard } from 'resguard'
 import type { Hookable } from 'hookable'
 import { createDebugger, createHooks } from 'hookable'
@@ -16,7 +16,6 @@ import { getOpenAIUsage } from './usage/openai'
 import { getAnthropicUsage } from './usage/anthropic'
 import { schemaToFunction } from './schema'
 import { TSchema } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
 
 
 declare let window: { ai: WindowAI }
@@ -97,6 +96,7 @@ export class Cursive {
     >> {
         await this._readyCheck()
         const result = await buildAnswer(options, this)
+
         if (result.error) {
             return new CursiveAnswer<CursiveError>({
                 result: null,
@@ -187,7 +187,7 @@ export class CursiveConversation {
 }
 
 export class CursiveAnswer<E extends null | CursiveError, Schema extends string | object | unknown = string> {
-    public choices: IfNull<E, string[]>
+    public choices: IfNull<E, (string | object)[]>
     public id: IfNull<E, string>
     public model: IfNull<E, string>
     public usage: IfNull<E, CursiveAskUsage>
@@ -663,6 +663,7 @@ async function buildAnswer<T extends TSchema | undefined = undefined>(
 ): Promise<CursiveEnrichedAnswer> {
     const result = await resguard(askModel<T>(options, cursive), CursiveError)
 
+
     if (result.error) {
         return {
             error: result.error,
@@ -697,7 +698,7 @@ async function buildAnswer<T extends TSchema | undefined = undefined>(
             id: result.data.answer.id,
             usage,
             cost: result.data.answer.cost,
-            choices: result.data.answer.choices.map(choice => choice.message.content),
+            choices: resolveChoices(result.data.answer.choices),
             functionResult: result.data.answer.functionResult || null,
             answer: resolvedAnswer,
             messages: result.data.messages,
@@ -707,16 +708,23 @@ async function buildAnswer<T extends TSchema | undefined = undefined>(
     }
 }
 
+function resolveChoices(choices: CreateChatCompletionResponseChoicesInner[]) {
+    return choices.map(choice => choice.message.content || choice.message.function_call)
+}
+
 function resolveFunctionList(functions: (CursiveFunction | CursiveFunctionSchema)[]) {
     return functions.map((functionDefinition) => {
         if ('schema' in functionDefinition) {
+            if (!functionDefinition.definition) {
+                functionDefinition.definition = async (args) => args;
+            }
             return functionDefinition
         }
         else if ('name' in functionDefinition) {
             const fn: CursiveFunction = {
                 schema: functionDefinition,
                 pause: true,
-                definition: null,
+                definition: async (args) => args,
             }
             return fn
         }
