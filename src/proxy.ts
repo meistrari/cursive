@@ -1,10 +1,9 @@
-import type { ChatCompletionResponseMessageRoleEnum, CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
+import type { CreateChatCompletionResponse, ErrorResponse } from 'openai-edge'
 import { TransformStream } from '@web-std/stream'
 import type { TSchema } from '@sinclair/typebox'
 import type { CursiveAskOptions, CursiveAskOptionsWithMessages, CursiveHook, CursiveHooks, CursiveSetupOptions, CursiveStreamDelta } from './types'
 import { useCursive } from './cursive'
 import { randomId } from './util'
-import { inspect } from 'bun'
 
 interface CursiveProxyOptions {
     stream?: {
@@ -56,7 +55,15 @@ async function handleRequest<T extends TSchema | undefined = undefined>(request:
     }
 
 
-    const mappedAnswer: CreateChatCompletionResponse = {
+    const mappedAnswer: CreateChatCompletionResponse & {
+        usage?: CreateChatCompletionResponse['usage'] & {
+            cost?: {
+                completion_cost: number
+                prompt_cost: number
+                total_cost: number
+            }
+        }
+    } = {
         choices: answer.choices.map((choice, index) => {
             const resolvedChoice = {
                 finish_reason: 'stop',
@@ -89,7 +96,15 @@ async function handleRequest<T extends TSchema | undefined = undefined>(request:
         mappedAnswer.usage = {
             prompt_tokens: answer.usage.promptTokens,
             completion_tokens: answer.usage.completionTokens,
-            total_tokens: answer.usage.totalTokens,
+            total_tokens: answer.usage.totalTokens,            
+        }
+
+        if (answer.cost) {
+            mappedAnswer.usage.cost = {
+                completion_cost: answer.cost.completion,
+                prompt_cost: answer.cost.prompt,
+                total_cost: answer.cost.total,
+            }
         }
     }
 

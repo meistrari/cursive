@@ -8,7 +8,7 @@ const person = t.Object({
     description: 'A person object'
 })
 
-const proxy = createCursiveProxy()
+const proxy = createCursiveProxy({ countUsage: true })
 
 const response = await proxy.handle({
     messages: [{ 'role': 'user', 'content': 'Return a person called John, aged 43.' }],
@@ -16,7 +16,9 @@ const response = await proxy.handle({
     schema: person,
 })
 
+console.log(response)
+
 if ('choices' in response) {
-    console.log(response.choices.at(0)?.message?.content)
+    console.log(response.choices.at(0))
 }
 
