@@ -16,7 +16,7 @@ import { getOpenAIUsage } from './usage/openai'
 import { getAnthropicUsage } from './usage/anthropic'
 import { schemaToFunction } from './schema'
 import { TSchema } from '@sinclair/typebox'
-
+import { jsonrepair } from 'jsonrepair'
 
 declare let window: { ai: WindowAI }
 
@@ -429,7 +429,7 @@ async function createCompletion(context: {
             const functionCallMatches = data.choices[0].message.content.match(hasFunctionCallRegex)
 
             if (functionCallMatches) {
-                const functionCall = JSON.parse(functionCallMatches[1].trim())
+                const functionCall = JSON.parse(jsonrepair(functionCallMatches[1].trim()))
                 data.choices[0].message.function_call = {
                     name: functionCall.name,
                     arguments: JSON.stringify(functionCall.arguments),
@@ -569,7 +569,7 @@ async function askModel<T extends TSchema | undefined = undefined>(
     const hasFunctionCall = completion.data.choices.some(choice => choice.message.function_call)
     if (hasFunctionCall && resolvedOptions.schema) {
         completion.data.choices = completion.data.choices.map((choice) => {
-            const args = resguard(() => JSON.parse(choice.message.function_call.arguments || '{}'), SyntaxError)
+            const args = resguard(() => JSON.parse(jsonrepair(choice.message.function_call.arguments || '{}')), SyntaxError)
             return {
                 ...choice,
                 message: {
@@ -608,7 +608,7 @@ async function askModel<T extends TSchema | undefined = undefined>(
             )
         }
 
-        const args = resguard(() => JSON.parse(functionCall.arguments || '{}'), SyntaxError)
+        const args = resguard(() => JSON.parse(jsonrepair(functionCall.arguments || '{}')), SyntaxError)
         const functionResult = await resguard(functionDefinition.definition(args.data))
 
         if (functionResult.error) {

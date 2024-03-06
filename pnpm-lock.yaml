@@ -73,6 +73,9 @@ devDependencies:
   haxx:
     specifier: ^0.7.0
     version: 0.7.0
+  jsonrepair:
+    specifier: ^3.6.0
+    version: 3.6.0
   lint-staged:
     specifier: ^13.2.2
     version: 13.3.0
@@ -3088,6 +3091,11 @@ packages:
 
   /jsonify@0.0.1:
     resolution: {integrity: sha512-2/Ki0GcmuqSrgFyelQq9M05y7PS0mEwuIzrf3f1fPqkVDVRvZrPZtVSMHxdgo8Aq0sxAOb/cr2aqqA3LeWHVPg==}
+    dev: true
+
+  /jsonrepair@3.6.0:
+    resolution: {integrity: sha512-ZvOmoq35LhlDaf1W3uT7e17Bh2dYbln1+pdJ1KUIMkRAoUC4mvXX+dbr9Ih6dDmYvB0mdijAucyPk4xX1cEjww==}
+    hasBin: true
     dev: true
 
   /keyv@4.5.3:
