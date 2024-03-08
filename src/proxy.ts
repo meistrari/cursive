@@ -71,7 +71,7 @@ async function handleRequest<T extends TSchema | undefined = undefined>(request:
                 message: {} as any,
             }
 
-            if (typeof choice === 'object' && 'name' in choice) {
+            if (typeof choice === 'object' && ('name' in choice && 'arguments' in choice)) {
                 resolvedChoice.message = {
                     role: 'function',
                     function_call: choice
