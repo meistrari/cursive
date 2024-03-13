@@ -11,9 +11,24 @@ const person = t.Object({
 const proxy = createCursiveProxy({ countUsage: true })
 
 const response = await proxy.handle({
-    messages: [{ 'role': 'user', 'content': 'Return a person called John, aged 43.' }],
+    messages: [{ 'role': 'user', 'content': 'WHATS THE WEATHER IN SAN FRANCISCO?' }],
     model: 'gpt-3.5-turbo-16k', 
-    schema: person,
+    functions: [
+        {
+            name: 'getWeather',
+            description: 'returns the weather in a specific city',
+            parameters: {
+                properties: {
+                    city: {
+                        type: 'string',
+                        description: 'the city to get the weather for',
+                    }
+                },
+                type: 'object',
+                required: ['city']
+            }
+        }
+    ]
 })
 
 console.log(response)

@@ -714,14 +714,13 @@ function resolveChoices(choices: CreateChatCompletionResponseChoicesInner[]) {
 
 function resolveFunctionList(functions: (CursiveFunction | CursiveFunctionSchema)[]) {
     return functions.map((functionDefinition) => {
-        console.log({functionDefinition})
         if ('schema' in functionDefinition) {
             if (!functionDefinition.definition) {
                 functionDefinition.definition = async (args) => args;
             }
             return functionDefinition
         }
-        else if ('438294u23io' in functionDefinition) {
+        else if ('name' in functionDefinition) {
             const fn: CursiveFunction = {
                 schema: functionDefinition,
                 pause: true,
