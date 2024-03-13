@@ -1,8 +1,7 @@
 {
   "name": "cursive",
   "type": "module",
-  "version": "2.5.1",
-  "packageManager": "pnpm@8.6.0",
+  "version": "2.5.2",
   "description": "",
   "author": "Henrique Cunha <henrycunh@gmail.com>",
   "license": "MIT",
