@@ -412,12 +412,12 @@ async function createCompletion(context: {
             }
             else {
                 const responseData = await response.json()
-
+                
                 if (responseData.error)
                     throw new CursiveError(responseData.error.message, responseData.error, CursiveErrorCode.CompletionError)
 
                 data = {
-                    choices: [{ message: { content: responseData.completion.trimStart() } }],
+                    choices: [{ message: { content: responseData.content[0].text.trimStart() } }],
                     model: payload.model,
                     id: randomId(),
                     usage: {} as any,

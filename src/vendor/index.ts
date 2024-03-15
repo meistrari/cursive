@@ -15,7 +15,7 @@ import type { CursiveAvailableModels } from '../types'
 // Simplifying the code above
 const modelSuffixToVendorMapping = {
     openai: ['gpt-3.5', 'gpt-4'],
-    anthropic: ['claude-instant', 'claude-2'],
+    anthropic: ['claude-instant', 'claude-2', 'claude'],
 }
 
 type CursiveAvailableVendor = (keyof typeof modelSuffixToVendorMapping) | ''

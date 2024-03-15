@@ -6,20 +6,21 @@ import { getStream } from '../stream'
 import { getAnthropicUsage } from '../usage/anthropic'
 import { trim } from '../util'
 
+
+
 export function createAnthropicClient(options: { apiKey: string }) {
     const resolvedFetch = ofetch.native
 
     async function createCompletion(payload: CreateChatCompletionRequest, abortSignal?: AbortSignal) {
-        const input = buildAnthropicInput(payload.messages)
-        const response = await resolvedFetch('https://api.anthropic.com/v1/complete', {
+        const response = await resolvedFetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': options.apiKey,
             },
             body: JSON.stringify({
-                prompt: input,
-                max_tokens_to_sample: payload.max_tokens || 100_000,
+                messages: payload.messages,
+                max_tokens: payload.max_tokens || 4096,
                 stop_sequences: payload.stop,
                 temperature: payload.temperature,
                 top_p: payload.top_p,
